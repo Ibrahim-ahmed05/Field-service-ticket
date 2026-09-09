@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { FieldFlowProvider } from "../lib/store";
+import { ThemeProvider } from "@/components/ff/theme";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +79,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "FieldFlow — Field Service Ticket System" },
+      {
+        name: "description",
+        content: "Enterprise Field Service Operations and Ticket Management Platform.",
+      },
+      { name: "author", content: "FieldFlow" },
+      { property: "og:title", content: "FieldFlow — Field Service Ticket System" },
+      {
+        property: "og:description",
+        content: "Enterprise Field Service Operations and Ticket Management Platform.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
@@ -102,8 +109,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{document.documentElement.classList.toggle("dark",localStorage.getItem("fieldflow_theme")==="dark")}catch(e){}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -119,8 +131,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider>
+        <FieldFlowProvider>
+          <Outlet />
+        </FieldFlowProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

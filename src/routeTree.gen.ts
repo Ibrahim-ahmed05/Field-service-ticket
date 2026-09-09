@@ -11,6 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CustomerIndexRouteImport } from './routes/customer/index'
+import { Route as TechIndexRouteImport } from './routes/tech/index'
+import { Route as TechJobIdRouteImport } from './routes/tech/$jobId'
+import { Route as TechniciansIndexRouteImport } from './routes/technicians/index'
+import { Route as TicketsIndexRouteImport } from './routes/tickets/index'
+import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
+import { Route as TrackTicketIdRouteImport } from './routes/track/$ticketId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +29,122 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomerIndexRoute = CustomerIndexRouteImport.update({
+  id: '/customer/',
+  path: '/customer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechIndexRoute = TechIndexRouteImport.update({
+  id: '/tech/',
+  path: '/tech/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechJobIdRoute = TechJobIdRouteImport.update({
+  id: '/tech/$jobId',
+  path: '/tech/$jobId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechniciansIndexRoute = TechniciansIndexRouteImport.update({
+  id: '/technicians/',
+  path: '/technicians/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketsIndexRoute = TicketsIndexRouteImport.update({
+  id: '/tickets/',
+  path: '/tickets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
+  id: '/tickets/$ticketId',
+  path: '/tickets/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackTicketIdRoute = TrackTicketIdRouteImport.update({
+  id: '/track/$ticketId',
+  path: '/track/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/tech/$jobId': typeof TechJobIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/track/$ticketId': typeof TrackTicketIdRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/tech/': typeof TechIndexRoute
+  '/technicians/': typeof TechniciansIndexRoute
+  '/tickets/': typeof TicketsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/tech/$jobId': typeof TechJobIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/track/$ticketId': typeof TrackTicketIdRoute
+  '/customer': typeof CustomerIndexRoute
+  '/tech': typeof TechIndexRoute
+  '/technicians': typeof TechniciansIndexRoute
+  '/tickets': typeof TicketsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/tech/$jobId': typeof TechJobIdRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
+  '/track/$ticketId': typeof TrackTicketIdRoute
+  '/customer/': typeof CustomerIndexRoute
+  '/tech/': typeof TechIndexRoute
+  '/technicians/': typeof TechniciansIndexRoute
+  '/tickets/': typeof TicketsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/tech/$jobId'
+    | '/tickets/$ticketId'
+    | '/track/$ticketId'
+    | '/customer/'
+    | '/tech/'
+    | '/technicians/'
+    | '/tickets/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/tech/$jobId'
+    | '/tickets/$ticketId'
+    | '/track/$ticketId'
+    | '/customer'
+    | '/tech'
+    | '/technicians'
+    | '/tickets'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/tech/$jobId'
+    | '/tickets/$ticketId'
+    | '/track/$ticketId'
+    | '/customer/'
+    | '/tech/'
+    | '/technicians/'
+    | '/tickets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  TechJobIdRoute: typeof TechJobIdRoute
+  TicketsTicketIdRoute: typeof TicketsTicketIdRoute
+  TrackTicketIdRoute: typeof TrackTicketIdRoute
+  CustomerIndexRoute: typeof CustomerIndexRoute
+  TechIndexRoute: typeof TechIndexRoute
+  TechniciansIndexRoute: typeof TechniciansIndexRoute
+  TicketsIndexRoute: typeof TicketsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +163,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customer/': {
+      id: '/customer/'
+      path: '/customer'
+      fullPath: '/customer/'
+      preLoaderRoute: typeof CustomerIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tech/': {
+      id: '/tech/'
+      path: '/tech'
+      fullPath: '/tech/'
+      preLoaderRoute: typeof TechIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tech/$jobId': {
+      id: '/tech/$jobId'
+      path: '/tech/$jobId'
+      fullPath: '/tech/$jobId'
+      preLoaderRoute: typeof TechJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/technicians/': {
+      id: '/technicians/'
+      path: '/technicians'
+      fullPath: '/technicians/'
+      preLoaderRoute: typeof TechniciansIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tickets/': {
+      id: '/tickets/'
+      path: '/tickets'
+      fullPath: '/tickets/'
+      preLoaderRoute: typeof TicketsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tickets/$ticketId': {
+      id: '/tickets/$ticketId'
+      path: '/tickets/$ticketId'
+      fullPath: '/tickets/$ticketId'
+      preLoaderRoute: typeof TicketsTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track/$ticketId': {
+      id: '/track/$ticketId'
+      path: '/track/$ticketId'
+      fullPath: '/track/$ticketId'
+      preLoaderRoute: typeof TrackTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  TechJobIdRoute: TechJobIdRoute,
+  TicketsTicketIdRoute: TicketsTicketIdRoute,
+  TrackTicketIdRoute: TrackTicketIdRoute,
+  CustomerIndexRoute: CustomerIndexRoute,
+  TechIndexRoute: TechIndexRoute,
+  TechniciansIndexRoute: TechniciansIndexRoute,
+  TicketsIndexRoute: TicketsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
