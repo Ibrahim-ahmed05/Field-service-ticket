@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as CustomerIndexRouteImport } from './routes/customer/index'
 import { Route as TechIndexRouteImport } from './routes/tech/index'
 import { Route as TechJobIdRouteImport } from './routes/tech/$jobId'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CustomerIndexRoute = CustomerIndexRouteImport.update({
@@ -68,6 +74,7 @@ const TrackTicketIdRoute = TrackTicketIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
   '/tech/$jobId': typeof TechJobIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/track/$ticketId': typeof TrackTicketIdRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
   '/tech/$jobId': typeof TechJobIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/track/$ticketId': typeof TrackTicketIdRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/login': typeof LoginRoute
   '/tech/$jobId': typeof TechJobIdRoute
   '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/track/$ticketId': typeof TrackTicketIdRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/login'
     | '/tech/$jobId'
     | '/tickets/$ticketId'
     | '/track/$ticketId'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/login'
     | '/tech/$jobId'
     | '/tickets/$ticketId'
     | '/track/$ticketId'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/login'
     | '/tech/$jobId'
     | '/tickets/$ticketId'
     | '/track/$ticketId'
@@ -138,6 +150,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  LoginRoute: typeof LoginRoute
   TechJobIdRoute: typeof TechJobIdRoute
   TicketsTicketIdRoute: typeof TicketsTicketIdRoute
   TrackTicketIdRoute: typeof TrackTicketIdRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/customer/': {
@@ -218,6 +238,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  LoginRoute: LoginRoute,
   TechJobIdRoute: TechJobIdRoute,
   TicketsTicketIdRoute: TicketsTicketIdRoute,
   TrackTicketIdRoute: TrackTicketIdRoute,

@@ -58,6 +58,18 @@ interface FieldFlowContextType {
     workInstructions?: string[];
   }) => Ticket;
 
+  editTicket: (
+    ticketId: string,
+    data: {
+      title?: string;
+      description?: string;
+      category?: Category;
+      priority?: Priority;
+      equipmentId?: string;
+      workInstructions?: string[];
+    }
+  ) => boolean;
+
   assignTechnician: (ticketId: string, technicianId: string | null) => boolean;
 
   updateTicketStatus: (
@@ -85,6 +97,8 @@ interface FieldFlowContextType {
   getSite: (id: string) => Site | undefined;
   getEquipmentForSite: (siteId: string) => Equipment[];
   getSitesForCustomer: (customerId: string) => Site[];
+  getRepeatIssueCountForSite: (siteId: string) => number;
+  getRepeatIssueCountForEquipment: (equipmentId?: string) => number;
 }
 
 const STORAGE_KEY = "fieldflow_app_state_v2";
@@ -166,6 +180,15 @@ export function FieldFlowProvider({ children }: { children: ReactNode }) {
   const getSite = (id: string) => sites.find((s) => s.id === id);
   const getEquipmentForSite = (siteId: string) => equipment.filter((e) => e.siteId === siteId);
   const getSitesForCustomer = (customerId: string) => sites.filter((s) => s.customerId === customerId);
+
+  const getRepeatIssueCountForSite = (siteId: string) => {
+    return tickets.filter((t) => t.siteId === siteId).length;
+  };
+
+  const getRepeatIssueCountForEquipment = (equipmentId?: string) => {
+    if (!equipmentId) return 0;
+    return tickets.filter((t) => t.equipmentId === equipmentId).length;
+  };
 
   // Auto-send notification logger
   const dispatchNotification = (
@@ -264,6 +287,56 @@ export function FieldFlowProvider({ children }: { children: ReactNode }) {
 
     toast.success(`Ticket #${newId} created successfully`);
     return newTicket;
+  };
+
+  const editTicket = (
+    ticketId: string,
+    data: {
+      title?: string;
+      description?: string;
+      category?: Category;
+      priority?: Priority;
+      equipmentId?: string;
+      workInstructions?: string[];
+    }
+  ): boolean => {
+    const ticket = getTicket(ticketId);
+    if (!ticket) return false;
+
+    const eq = data.equipmentId ? equipment.find((e) => e.id === data.equipmentId) : undefined;
+    const newDueDate = data.priority && data.priority !== ticket.priority ? calculateDueDate(ticket.createdAt, data.priority) : ticket.dueDate;
+
+    setTickets((prev) =>
+      prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        return {
+          ...t,
+          title: data.title !== undefined ? data.title : t.title,
+          description: data.description !== undefined ? data.description : t.description,
+          category: data.category !== undefined ? data.category : t.category,
+          priority: data.priority !== undefined ? data.priority : t.priority,
+          equipmentId: data.equipmentId !== undefined ? data.equipmentId : t.equipmentId,
+          equipmentModel: eq?.model || t.equipmentModel,
+          workInstructions: data.workInstructions !== undefined ? data.workInstructions : t.workInstructions,
+          dueDate: newDueDate,
+        };
+      })
+    );
+
+    // Audit trail history
+    const histEntry: TicketHistory = {
+      id: `h-${Date.now()}`,
+      ticketId,
+      fromStatus: ticket.status,
+      toStatus: ticket.status,
+      changedBy: role === "manager" ? "Alex Morgan (Manager)" : "Customer",
+      changedAt: new Date().toISOString(),
+      note: `Ticket details updated (Title/Priority/Scope).`,
+    };
+    setHistory((prev) => [histEntry, ...prev]);
+
+    toast.success(`Ticket #${ticketId} updated successfully`);
+    return true;
   };
 
   const assignTechnician = (ticketId: string, technicianId: string | null): boolean => {
@@ -500,6 +573,7 @@ export function FieldFlowProvider({ children }: { children: ReactNode }) {
         attachments,
         notificationLogs,
         createTicket,
+        editTicket,
         assignTechnician,
         updateTicketStatus,
         addNote,
@@ -512,6 +586,8 @@ export function FieldFlowProvider({ children }: { children: ReactNode }) {
         getSite,
         getEquipmentForSite,
         getSitesForCustomer,
+        getRepeatIssueCountForSite,
+        getRepeatIssueCountForEquipment,
       }}
     >
       {children}

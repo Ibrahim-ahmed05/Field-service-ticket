@@ -98,7 +98,7 @@ function TechnicianJobDetailPage() {
 
   return (
     <div className="portal-screen min-h-screen bg-surface flex flex-col pb-12">
-      <WorkspaceNavigation /><div className="portal-role"><RoleBar /></div>
+      <WorkspaceNavigation />
 
       {/* Top Header */}
       <header className="relative z-20 bg-elevated border-b border-hairline shadow-xs">

@@ -77,7 +77,7 @@ function TechnicianMyJobsPage() {
 
   return (
     <div className="portal-screen min-h-screen bg-surface flex flex-col">
-      <WorkspaceNavigation /><div className="portal-role"><RoleBar /></div>
+      <WorkspaceNavigation />
 
       {/* Mobile Top Header */}
       <header className="relative z-20 bg-elevated border-b border-hairline shadow-xs">

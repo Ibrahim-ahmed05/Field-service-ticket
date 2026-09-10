@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
-import { RoleBar } from "./role-bar";
 import { WorkspaceNavigation } from "./workspace-navigation";
 import { CreateTicketModal } from "./create-ticket-modal";
 import { useFieldFlow } from "@/lib/store";
@@ -26,7 +25,6 @@ export function AppShell({
       </a>
       <WorkspaceNavigation />
       <div className="workspace-body">
-        <RoleBar />
         <div className="page-heading">
           <div>
             <p className="eyebrow">YOUR WORKSPACE, CONNECTED</p>
@@ -36,7 +34,7 @@ export function AppShell({
           <div>
             {actions ||
               (role !== "technician" && (
-                <Button onClick={() => setCreateOpen(true)} className="rounded-xl gap-2">
+                <Button onClick={() => setCreateOpen(true)} className="rounded-xl gap-2 text-xs font-semibold">
                   <Plus size={16} />
                   {role === "customer" ? "Report issue" : "New ticket"}
                 </Button>

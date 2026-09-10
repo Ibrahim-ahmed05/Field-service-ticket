@@ -37,22 +37,18 @@ export function LandingPage() {
           <nav aria-label="Main navigation">
             <a href="#workflow">How it works</a>
             <a href="#solutions">Solutions</a>
-            <Link to="/customer" onClick={() => setRole("customer")}>
-              Customer portal
-            </Link>
           </nav>
           <ThemeToggle />
-          <Link to="/dashboard" onClick={() => setRole("manager")} className="button-primary">
-            Open workspace <ArrowRight size={16} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="button-primary text-xs py-2 px-4 shadow-sm">
+              Sign In <ArrowRight size={15} />
+            </Link>
+          </div>
         </div>
       </header>
       <main id="main-content">
         <section className="hero landing-container">
           <div className="hero-copy">
-            <p className="eyebrow">
-              <span className="live-dot" /> FIELD SERVICE, SIMPLIFIED
-            </p>
             <h1>
               Great service.
               <br />
@@ -66,8 +62,8 @@ export function LandingPage() {
               the job done.
             </p>
             <div className="hero-actions">
-              <Link to="/dashboard" onClick={() => setRole("manager")} className="button-primary">
-                Explore the workspace <ArrowRight size={17} />
+              <Link to="/login" className="button-primary">
+                Sign In to Workspace <ArrowRight size={17} />
               </Link>
               <a href="#workflow" className="button-secondary">
                 See how it works <ArrowUpRight size={16} />
@@ -200,13 +196,13 @@ export function LandingPage() {
               simple way to follow their service.
             </p>
             <div className="solution-links">
-              <Link to="/dashboard" onClick={() => setRole("manager")}>
+              <Link to="/login">
                 For operations teams <ArrowRight size={17} />
               </Link>
-              <Link to="/tech" onClick={() => setRole("technician")}>
+              <Link to="/login">
                 For field technicians <ArrowRight size={17} />
               </Link>
-              <Link to="/customer" onClick={() => setRole("customer")}>
+              <Link to="/login">
                 For your customers <ArrowRight size={17} />
               </Link>
             </div>
@@ -217,10 +213,10 @@ export function LandingPage() {
             <div>
               <p className="eyebrow">BRING IT ALL TOGETHER</p>
               <h2>Your next great service starts here.</h2>
-              <p>Take a look around the interactive demo workspace.</p>
+              <p>Sign in to explore your operational workspace.</p>
             </div>
-            <Link to="/dashboard" onClick={() => setRole("manager")} className="button-primary">
-              Let’s get to work <ArrowRight size={17} />
+            <Link to="/login" className="button-primary">
+              Sign In & Get Started <ArrowRight size={17} />
             </Link>
           </div>
         </section>

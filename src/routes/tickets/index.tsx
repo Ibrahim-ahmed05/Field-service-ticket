@@ -23,6 +23,7 @@ import {
   SlidersHorizontal,
   X,
   UserCheck,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +38,14 @@ export const Route = createFileRoute("/tickets/")({
 });
 
 function TicketsListPage() {
-  const { tickets, technicians, customers, role } = useFieldFlow();
+  const { tickets, technicians, customers, role, getRepeatIssueCountForSite } = useFieldFlow();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [techFilter, setTechFilter] = useState<string>("ALL");
+  const [dateFilter, setDateFilter] = useState<string>("ALL");
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -84,6 +86,16 @@ function TicketsListPage() {
       return false;
     }
 
+    // Date filter
+    if (dateFilter !== "ALL") {
+      const created = new Date(t.createdAt).getTime();
+      const now = new Date().getTime();
+      const dayMs = 24 * 60 * 60 * 1000;
+      if (dateFilter === "TODAY" && now - created > dayMs) return false;
+      if (dateFilter === "LAST_7_DAYS" && now - created > 7 * dayMs) return false;
+      if (dateFilter === "LAST_30_DAYS" && now - created > 30 * dayMs) return false;
+    }
+
     // Overdue toggle
     if (overdueOnly && !isTicketOverdue(t)) {
       return false;
@@ -98,6 +110,7 @@ function TicketsListPage() {
     setPriorityFilter("ALL");
     setCategoryFilter("ALL");
     setTechFilter("ALL");
+    setDateFilter("ALL");
     setOverdueOnly(false);
   };
 
@@ -107,6 +120,7 @@ function TicketsListPage() {
     priorityFilter !== "ALL" ||
     categoryFilter !== "ALL" ||
     techFilter !== "ALL" ||
+    dateFilter !== "ALL" ||
     overdueOnly;
 
   return (
@@ -153,7 +167,7 @@ function TicketsListPage() {
         </div>
 
         {/* Dropdown Filters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-hairline/70">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-hairline/70">
           {/* Status Select */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-8 text-xs bg-background">
@@ -204,6 +218,19 @@ function TicketsListPage() {
               {technicians.map((t) => (
                 <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          {/* Date Created Select */}
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectValue placeholder="Date: All Time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL" className="text-xs">Date: All Time</SelectItem>
+              <SelectItem value="TODAY" className="text-xs">Today</SelectItem>
+              <SelectItem value="LAST_7_DAYS" className="text-xs">Last 7 Days</SelectItem>
+              <SelectItem value="LAST_30_DAYS" className="text-xs">Last 30 Days</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -273,7 +300,14 @@ function TicketsListPage() {
 
                   {/* Customer & Site */}
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{t.customerName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-foreground truncate">{t.customerName}</p>
+                      {getRepeatIssueCountForSite(t.siteId) > 1 && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold text-[9px] border border-amber-200 dark:border-amber-800 shrink-0">
+                          <RefreshCw className="size-2.5" /> Repeat ({getRepeatIssueCountForSite(t.siteId)})
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-muted-foreground truncate">{t.siteName}</p>
                   </div>
 

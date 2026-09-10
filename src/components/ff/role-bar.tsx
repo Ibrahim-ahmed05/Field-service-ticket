@@ -1,4 +1,5 @@
 import { useFieldFlow } from "@/lib/store";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown, RotateCcw, Users } from "lucide-react";
 import type { UserRole } from "@/lib/fieldflow-data";
 export function RoleBar() {
@@ -68,6 +69,12 @@ export function RoleBar() {
               </select>
             </label>
           )}
+          <Link
+            to="/login"
+            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-primary/10 hover:bg-primary hover:text-primary-foreground text-primary text-xs font-semibold transition-colors mt-2"
+          >
+            Login Page (All Credentials)
+          </Link>
           <button
             className="reset-demo"
             onClick={() => {

@@ -67,8 +67,8 @@ export function ProductPreview() {
               ))}
             </div>
           </div>
-          <Link to="/dashboard" onClick={() => setRole("manager")} className="preview-open">
-            Explore your workspace <ArrowUpRight size={13} />
+          <Link to="/login" className="preview-open">
+            Sign In to Workspace <ArrowUpRight size={13} />
           </Link>
         </div>
       </div>
@@ -95,8 +95,8 @@ export function ProductPreview() {
               </p>
             </div>
           ))}
-        <Link to="/tech" onClick={() => setRole("technician")}>
-          View job list <ArrowUpRight size={12} />
+        <Link to="/login">
+          Sign In to View <ArrowUpRight size={12} />
         </Link>
       </div>
       <div className="preview-tracker">

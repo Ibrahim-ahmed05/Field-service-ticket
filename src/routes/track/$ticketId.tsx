@@ -114,7 +114,7 @@ function CustomerTicketTrackingPage() {
 
   return (
     <div className="portal-screen min-h-screen bg-surface flex flex-col">
-      <WorkspaceNavigation /><div className="portal-role"><RoleBar /></div>
+      <WorkspaceNavigation />
 
       {/* Header */}
       <header className="border-b border-hairline bg-elevated/90 backdrop-blur-md relative z-20">

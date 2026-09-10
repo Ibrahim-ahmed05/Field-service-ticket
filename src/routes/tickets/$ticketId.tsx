@@ -32,6 +32,8 @@ import {
   Eye,
   EyeOff,
   UserCheck,
+  Edit3,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransitionModal } from "@/components/ff/transition-modal";
+import { EditTicketModal } from "@/components/ff/edit-ticket-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,6 +79,7 @@ function TicketDetailPage() {
     uploadAttachment,
     confirmResolution,
     updateTicketStatus,
+    getRepeatIssueCountForSite,
   } = useFieldFlow();
 
   const ticket = getTicket(ticketId);
@@ -85,6 +89,7 @@ function TicketDetailPage() {
   const [transitionModalOpen, setTransitionModalOpen] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [attachModalOpen, setAttachModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // New Note state
   const [newNoteBody, setNewNoteBody] = useState("");
@@ -174,6 +179,19 @@ function TicketDetailPage() {
       subtitle={`${ticket.title} — ${ticket.customerName}`}
       actions={
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Manager Action: Edit Ticket Details */}
+          {role === "manager" && ticket.status !== "Closed" && ticket.status !== "Cancelled" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditModalOpen(true)}
+              className="h-8 text-xs gap-1.5"
+            >
+              <Edit3 className="size-3.5" />
+              <span>Edit Details</span>
+            </Button>
+          )}
+
           {/* Manager Actions: Assign / Reassign */}
           {role === "manager" && ticket.status !== "Closed" && ticket.status !== "Cancelled" && (
             <Button
@@ -220,6 +238,28 @@ function TicketDetailPage() {
         </div>
       }
     >
+      {/* Repeat Issue Alert Banner */}
+      {getRepeatIssueCountForSite(ticket.siteId) > 1 && (
+        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-300 grid place-items-center shrink-0">
+              <RefreshCw className="size-4 animate-spin-slow" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-amber-950 dark:text-amber-200 flex items-center gap-2">
+                <span>Repeat Issue Detected on Site</span>
+                <span className="px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 font-mono text-[10px]">
+                  {getRepeatIssueCountForSite(ticket.siteId)} Tickets Reported
+                </span>
+              </h3>
+              <p className="text-[11px] text-amber-800/90 dark:text-amber-400 mt-0.5">
+                Facility {ticket.siteName} has logged repeated service tickets. Review root cause analysis and equipment maintenance logs.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner Status Bar */}
       <div className="card-surface p-5 shadow-soft mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
@@ -714,6 +754,8 @@ function TicketDetailPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <EditTicketModal ticket={ticket} open={editModalOpen} onOpenChange={setEditModalOpen} />
     </AppShell>
   );
 }

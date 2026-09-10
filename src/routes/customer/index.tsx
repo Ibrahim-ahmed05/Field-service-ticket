@@ -15,6 +15,7 @@ import {
   MapPin,
   ShieldCheck,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateTicketModal } from "@/components/ff/create-ticket-modal";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/customer/")({
 });
 
 function CustomerPortalPage() {
-  const { tickets, customers, sites, activeCustomerId, role } = useFieldFlow();
+  const { tickets, customers, sites, activeCustomerId, role, getRepeatIssueCountForSite } = useFieldFlow();
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const activeCustomer = customers.find((c) => c.id === activeCustomerId) || customers[0];
@@ -182,20 +183,30 @@ function CustomerPortalPage() {
       <div className="card-surface p-6 shadow-soft space-y-4">
         <h2 className="text-sm font-semibold tracking-tight">Your Registered Facilities & Sites</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {mySites.map((s) => (
-            <div key={s.id} className="p-3.5 rounded-xl border border-hairline bg-surface space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground">{s.name}</span>
-                <span className="text-[10px] text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded">
-                  {s.siteType}
-                </span>
+          {mySites.map((s) => {
+            const count = getRepeatIssueCountForSite(s.id);
+            return (
+              <div key={s.id} className="p-3.5 rounded-xl border border-hairline bg-surface space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-foreground truncate">{s.name}</span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {count > 1 && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold text-[9px] border border-amber-200 dark:border-amber-800">
+                        <RefreshCw className="size-2.5" /> Repeat ({count})
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded">
+                      {s.siteType}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                  <MapPin className="size-3 text-primary shrink-0" />
+                  <span className="truncate">{s.address}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                <MapPin className="size-3 text-primary shrink-0" />
-                <span className="truncate">{s.address}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
