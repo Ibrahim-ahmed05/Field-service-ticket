@@ -105,21 +105,51 @@ function TechnicianMyJobsPage() {
 
       {/* Main Mobile Container */}
       <main className="flex-1 max-w-xl w-full mx-auto p-4 space-y-4">
-        {/* Active Duty Status Card */}
-        <div className="card-surface p-4 shadow-soft flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-primary/10 text-primary grid place-items-center">
-              <Wrench className="size-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold">{activeTech.name}</span>
-                <TechStatus status={activeTech.status} />
+        {/* Active Duty Status Card & Technician Persona Switcher */}
+        <div className="card-surface p-4 shadow-soft space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                <Wrench className="size-5" />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {activeJobs.length} active jobs • {activeTech.completedToday} resolved today
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-foreground">{activeTech.name}</span>
+                  <TechStatus status={activeTech.status} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="font-semibold text-foreground">{activeJobs.length}</span> active jobs • <span className="font-semibold text-foreground">{completedJobs.length}</span> resolved
+                </p>
+              </div>
             </div>
+
+            {/* Quick Switch Technician Dropdown */}
+            <div className="text-right">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">
+                Active Technician
+              </label>
+              <select
+                value={activeTechnicianId}
+                onChange={(e) => setActiveTechnicianId(e.target.value)}
+                className="h-8 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface border border-hairline hover:border-border text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                {technicians.map((t) => {
+                  const techActiveCount = tickets.filter(
+                    (tk) => tk.assignedTechnicianId === t.id && ["Assigned", "In Progress", "Waiting"].includes(tk.status)
+                  ).length;
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({techActiveCount} active)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-hairline/60 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>Specialization: <strong className="text-foreground">{activeTech.specialization}</strong></span>
+            <span>Region: <strong className="text-foreground">{activeTech.region}</strong></span>
           </div>
         </div>
 
@@ -160,12 +190,39 @@ function TechnicianMyJobsPage() {
         {/* Job Cards Queue */}
         <div className="space-y-3.5">
           {displayedJobs.length === 0 ? (
-            <div className="card-surface p-10 text-center space-y-2">
+            <div className="card-surface p-8 text-center space-y-3">
               <CheckCircle2 className="size-8 text-emerald-500 mx-auto" />
-              <p className="text-sm font-semibold">No assigned jobs in this view</p>
-              <p className="text-xs text-muted-foreground">
-                You're all caught up! New job assignments from dispatch will appear here automatically.
-              </p>
+              <div>
+                <p className="text-sm font-semibold">No assigned jobs for {activeTech.name} in this tab</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  Switch technician above to view service tickets assigned to other field engineers:
+                </p>
+              </div>
+
+              {/* Quick switch pills for other technicians with active jobs */}
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                {technicians
+                  .filter((t) => t.id !== activeTech.id)
+                  .map((t) => {
+                    const count = tickets.filter(
+                      (tk) => tk.assignedTechnicianId === t.id && ["Assigned", "In Progress", "Waiting"].includes(tk.status)
+                    ).length;
+                    return (
+                      <Button
+                        key={t.id}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setActiveTechnicianId(t.id)}
+                        className="h-7 text-xs font-medium bg-surface hover:bg-muted"
+                      >
+                        <span className="font-semibold">{t.name}</span>
+                        <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                          {count} active
+                        </span>
+                      </Button>
+                    );
+                  })}
+              </div>
             </div>
           ) : (
             displayedJobs.map((t) => {

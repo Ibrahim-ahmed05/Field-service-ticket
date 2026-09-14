@@ -101,7 +101,7 @@ interface FieldFlowContextType {
   getRepeatIssueCountForEquipment: (equipmentId?: string) => number;
 }
 
-const STORAGE_KEY = "fieldflow_app_state_v2";
+const STORAGE_KEY = "fieldflow_app_state_v3";
 
 const FieldFlowContext = createContext<FieldFlowContextType | null>(null);
 

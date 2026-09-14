@@ -19,6 +19,16 @@ import { Route as TechniciansIndexRouteImport } from './routes/technicians/index
 import { Route as TicketsIndexRouteImport } from './routes/tickets/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as TrackTicketIdRouteImport } from './routes/track/$ticketId'
+import { Route as ApiV1DashboardMetricsRouteImport } from './routes/api/v1/dashboard/metrics'
+import { Route as ApiV1TicketsIndexRouteImport } from './routes/api/v1/tickets/index'
+import { Route as ApiV1CustomersIdTicketsRouteImport } from './routes/api/v1/customers/$id/tickets'
+import { Route as ApiV1TechniciansIdJobsRouteImport } from './routes/api/v1/technicians/$id/jobs'
+import { Route as ApiV1TicketsIdIndexRouteImport } from './routes/api/v1/tickets/$id/index'
+import { Route as ApiV1TicketsIdAssignRouteImport } from './routes/api/v1/tickets/$id/assign'
+import { Route as ApiV1TicketsIdAttachmentsRouteImport } from './routes/api/v1/tickets/$id/attachments'
+import { Route as ApiV1TicketsIdCommentsRouteImport } from './routes/api/v1/tickets/$id/comments'
+import { Route as ApiV1TicketsIdHistoryRouteImport } from './routes/api/v1/tickets/$id/history'
+import { Route as ApiV1TicketsIdStatusRouteImport } from './routes/api/v1/tickets/$id/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +80,57 @@ const TrackTicketIdRoute = TrackTicketIdRouteImport.update({
   path: '/track/$ticketId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1DashboardMetricsRoute = ApiV1DashboardMetricsRouteImport.update({
+  id: '/api/v1/dashboard/metrics',
+  path: '/api/v1/dashboard/metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIndexRoute = ApiV1TicketsIndexRouteImport.update({
+  id: '/api/v1/tickets/',
+  path: '/api/v1/tickets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1CustomersIdTicketsRoute = ApiV1CustomersIdTicketsRouteImport.update({
+  id: '/api/v1/customers/$id/tickets',
+  path: '/api/v1/customers/$id/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TechniciansIdJobsRoute = ApiV1TechniciansIdJobsRouteImport.update({
+  id: '/api/v1/technicians/$id/jobs',
+  path: '/api/v1/technicians/$id/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIdIndexRoute = ApiV1TicketsIdIndexRouteImport.update({
+  id: '/api/v1/tickets/$id/',
+  path: '/api/v1/tickets/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIdAssignRoute = ApiV1TicketsIdAssignRouteImport.update({
+  id: '/api/v1/tickets/$id/assign',
+  path: '/api/v1/tickets/$id/assign',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIdAttachmentsRoute =
+  ApiV1TicketsIdAttachmentsRouteImport.update({
+    id: '/api/v1/tickets/$id/attachments',
+    path: '/api/v1/tickets/$id/attachments',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiV1TicketsIdCommentsRoute = ApiV1TicketsIdCommentsRouteImport.update({
+  id: '/api/v1/tickets/$id/comments',
+  path: '/api/v1/tickets/$id/comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIdHistoryRoute = ApiV1TicketsIdHistoryRouteImport.update({
+  id: '/api/v1/tickets/$id/history',
+  path: '/api/v1/tickets/$id/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1TicketsIdStatusRoute = ApiV1TicketsIdStatusRouteImport.update({
+  id: '/api/v1/tickets/$id/status',
+  path: '/api/v1/tickets/$id/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +143,16 @@ export interface FileRoutesByFullPath {
   '/tech/': typeof TechIndexRoute
   '/technicians/': typeof TechniciansIndexRoute
   '/tickets/': typeof TicketsIndexRoute
+  '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
+  '/api/v1/tickets/': typeof ApiV1TicketsIndexRoute
+  '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
+  '/api/v1/technicians/$id/jobs': typeof ApiV1TechniciansIdJobsRoute
+  '/api/v1/tickets/$id/assign': typeof ApiV1TicketsIdAssignRoute
+  '/api/v1/tickets/$id/attachments': typeof ApiV1TicketsIdAttachmentsRoute
+  '/api/v1/tickets/$id/comments': typeof ApiV1TicketsIdCommentsRoute
+  '/api/v1/tickets/$id/history': typeof ApiV1TicketsIdHistoryRoute
+  '/api/v1/tickets/$id/status': typeof ApiV1TicketsIdStatusRoute
+  '/api/v1/tickets/$id/': typeof ApiV1TicketsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +165,16 @@ export interface FileRoutesByTo {
   '/tech': typeof TechIndexRoute
   '/technicians': typeof TechniciansIndexRoute
   '/tickets': typeof TicketsIndexRoute
+  '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
+  '/api/v1/tickets': typeof ApiV1TicketsIndexRoute
+  '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
+  '/api/v1/technicians/$id/jobs': typeof ApiV1TechniciansIdJobsRoute
+  '/api/v1/tickets/$id/assign': typeof ApiV1TicketsIdAssignRoute
+  '/api/v1/tickets/$id/attachments': typeof ApiV1TicketsIdAttachmentsRoute
+  '/api/v1/tickets/$id/comments': typeof ApiV1TicketsIdCommentsRoute
+  '/api/v1/tickets/$id/history': typeof ApiV1TicketsIdHistoryRoute
+  '/api/v1/tickets/$id/status': typeof ApiV1TicketsIdStatusRoute
+  '/api/v1/tickets/$id': typeof ApiV1TicketsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +188,16 @@ export interface FileRoutesById {
   '/tech/': typeof TechIndexRoute
   '/technicians/': typeof TechniciansIndexRoute
   '/tickets/': typeof TicketsIndexRoute
+  '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
+  '/api/v1/tickets/': typeof ApiV1TicketsIndexRoute
+  '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
+  '/api/v1/technicians/$id/jobs': typeof ApiV1TechniciansIdJobsRoute
+  '/api/v1/tickets/$id/assign': typeof ApiV1TicketsIdAssignRoute
+  '/api/v1/tickets/$id/attachments': typeof ApiV1TicketsIdAttachmentsRoute
+  '/api/v1/tickets/$id/comments': typeof ApiV1TicketsIdCommentsRoute
+  '/api/v1/tickets/$id/history': typeof ApiV1TicketsIdHistoryRoute
+  '/api/v1/tickets/$id/status': typeof ApiV1TicketsIdStatusRoute
+  '/api/v1/tickets/$id/': typeof ApiV1TicketsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +212,16 @@ export interface FileRouteTypes {
     | '/tech/'
     | '/technicians/'
     | '/tickets/'
+    | '/api/v1/dashboard/metrics'
+    | '/api/v1/tickets/'
+    | '/api/v1/customers/$id/tickets'
+    | '/api/v1/technicians/$id/jobs'
+    | '/api/v1/tickets/$id/assign'
+    | '/api/v1/tickets/$id/attachments'
+    | '/api/v1/tickets/$id/comments'
+    | '/api/v1/tickets/$id/history'
+    | '/api/v1/tickets/$id/status'
+    | '/api/v1/tickets/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +234,16 @@ export interface FileRouteTypes {
     | '/tech'
     | '/technicians'
     | '/tickets'
+    | '/api/v1/dashboard/metrics'
+    | '/api/v1/tickets'
+    | '/api/v1/customers/$id/tickets'
+    | '/api/v1/technicians/$id/jobs'
+    | '/api/v1/tickets/$id/assign'
+    | '/api/v1/tickets/$id/attachments'
+    | '/api/v1/tickets/$id/comments'
+    | '/api/v1/tickets/$id/history'
+    | '/api/v1/tickets/$id/status'
+    | '/api/v1/tickets/$id'
   id:
     | '__root__'
     | '/'
@@ -145,6 +256,16 @@ export interface FileRouteTypes {
     | '/tech/'
     | '/technicians/'
     | '/tickets/'
+    | '/api/v1/dashboard/metrics'
+    | '/api/v1/tickets/'
+    | '/api/v1/customers/$id/tickets'
+    | '/api/v1/technicians/$id/jobs'
+    | '/api/v1/tickets/$id/assign'
+    | '/api/v1/tickets/$id/attachments'
+    | '/api/v1/tickets/$id/comments'
+    | '/api/v1/tickets/$id/history'
+    | '/api/v1/tickets/$id/status'
+    | '/api/v1/tickets/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +279,16 @@ export interface RootRouteChildren {
   TechIndexRoute: typeof TechIndexRoute
   TechniciansIndexRoute: typeof TechniciansIndexRoute
   TicketsIndexRoute: typeof TicketsIndexRoute
+  ApiV1DashboardMetricsRoute: typeof ApiV1DashboardMetricsRoute
+  ApiV1TicketsIndexRoute: typeof ApiV1TicketsIndexRoute
+  ApiV1CustomersIdTicketsRoute: typeof ApiV1CustomersIdTicketsRoute
+  ApiV1TechniciansIdJobsRoute: typeof ApiV1TechniciansIdJobsRoute
+  ApiV1TicketsIdAssignRoute: typeof ApiV1TicketsIdAssignRoute
+  ApiV1TicketsIdAttachmentsRoute: typeof ApiV1TicketsIdAttachmentsRoute
+  ApiV1TicketsIdCommentsRoute: typeof ApiV1TicketsIdCommentsRoute
+  ApiV1TicketsIdHistoryRoute: typeof ApiV1TicketsIdHistoryRoute
+  ApiV1TicketsIdStatusRoute: typeof ApiV1TicketsIdStatusRoute
+  ApiV1TicketsIdIndexRoute: typeof ApiV1TicketsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +363,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackTicketIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/dashboard/metrics': {
+      id: '/api/v1/dashboard/metrics'
+      path: '/api/v1/dashboard/metrics'
+      fullPath: '/api/v1/dashboard/metrics'
+      preLoaderRoute: typeof ApiV1DashboardMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/': {
+      id: '/api/v1/tickets/'
+      path: '/api/v1/tickets'
+      fullPath: '/api/v1/tickets/'
+      preLoaderRoute: typeof ApiV1TicketsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/customers/$id/tickets': {
+      id: '/api/v1/customers/$id/tickets'
+      path: '/api/v1/customers/$id/tickets'
+      fullPath: '/api/v1/customers/$id/tickets'
+      preLoaderRoute: typeof ApiV1CustomersIdTicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/technicians/$id/jobs': {
+      id: '/api/v1/technicians/$id/jobs'
+      path: '/api/v1/technicians/$id/jobs'
+      fullPath: '/api/v1/technicians/$id/jobs'
+      preLoaderRoute: typeof ApiV1TechniciansIdJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/': {
+      id: '/api/v1/tickets/$id/'
+      path: '/api/v1/tickets/$id'
+      fullPath: '/api/v1/tickets/$id/'
+      preLoaderRoute: typeof ApiV1TicketsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/assign': {
+      id: '/api/v1/tickets/$id/assign'
+      path: '/api/v1/tickets/$id/assign'
+      fullPath: '/api/v1/tickets/$id/assign'
+      preLoaderRoute: typeof ApiV1TicketsIdAssignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/attachments': {
+      id: '/api/v1/tickets/$id/attachments'
+      path: '/api/v1/tickets/$id/attachments'
+      fullPath: '/api/v1/tickets/$id/attachments'
+      preLoaderRoute: typeof ApiV1TicketsIdAttachmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/comments': {
+      id: '/api/v1/tickets/$id/comments'
+      path: '/api/v1/tickets/$id/comments'
+      fullPath: '/api/v1/tickets/$id/comments'
+      preLoaderRoute: typeof ApiV1TicketsIdCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/history': {
+      id: '/api/v1/tickets/$id/history'
+      path: '/api/v1/tickets/$id/history'
+      fullPath: '/api/v1/tickets/$id/history'
+      preLoaderRoute: typeof ApiV1TicketsIdHistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/tickets/$id/status': {
+      id: '/api/v1/tickets/$id/status'
+      path: '/api/v1/tickets/$id/status'
+      fullPath: '/api/v1/tickets/$id/status'
+      preLoaderRoute: typeof ApiV1TicketsIdStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +447,16 @@ const rootRouteChildren: RootRouteChildren = {
   TechIndexRoute: TechIndexRoute,
   TechniciansIndexRoute: TechniciansIndexRoute,
   TicketsIndexRoute: TicketsIndexRoute,
+  ApiV1DashboardMetricsRoute: ApiV1DashboardMetricsRoute,
+  ApiV1TicketsIndexRoute: ApiV1TicketsIndexRoute,
+  ApiV1CustomersIdTicketsRoute: ApiV1CustomersIdTicketsRoute,
+  ApiV1TechniciansIdJobsRoute: ApiV1TechniciansIdJobsRoute,
+  ApiV1TicketsIdAssignRoute: ApiV1TicketsIdAssignRoute,
+  ApiV1TicketsIdAttachmentsRoute: ApiV1TicketsIdAttachmentsRoute,
+  ApiV1TicketsIdCommentsRoute: ApiV1TicketsIdCommentsRoute,
+  ApiV1TicketsIdHistoryRoute: ApiV1TicketsIdHistoryRoute,
+  ApiV1TicketsIdStatusRoute: ApiV1TicketsIdStatusRoute,
+  ApiV1TicketsIdIndexRoute: ApiV1TicketsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

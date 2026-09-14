@@ -34,6 +34,7 @@ import {
   UserCheck,
   Edit3,
   RefreshCw,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,7 +74,9 @@ function TicketDetailPage() {
     attachments,
     notificationLogs,
     role,
+    setRole,
     activeTechnicianId,
+    setActiveTechnicianId,
     assignTechnician,
     addNote,
     uploadAttachment,
@@ -367,18 +370,36 @@ function TicketDetailPage() {
             </h2>
 
             {assignedTech ? (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-surface border border-hairline">
-                <div className="flex items-center gap-3">
-                  <Avatar initials={assignedTech.initials} size="lg" />
-                  <div>
-                    <p className="text-xs font-semibold text-foreground">{assignedTech.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{assignedTech.specialization}</p>
-                    <p className="font-mono text-[10px] text-primary mt-0.5">{assignedTech.phone}</p>
+              <div className="p-3 rounded-xl bg-surface border border-hairline space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar initials={assignedTech.initials} size="lg" />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{assignedTech.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{assignedTech.specialization}</p>
+                      <p className="font-mono text-[10px] text-primary mt-0.5">{assignedTech.phone}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-semibold text-foreground">{assignedTech.rating}★</span>
+                    <p className="text-[10px] text-muted-foreground">{assignedTech.activeJobs} active jobs</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-foreground">{assignedTech.rating}★</span>
-                  <p className="text-[10px] text-muted-foreground">{assignedTech.activeJobs} active jobs</p>
+
+                <div className="pt-2 border-t border-hairline flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-muted-foreground">Mobile Workflow</span>
+                  <Link
+                    to="/tech/$jobId"
+                    params={{ jobId: ticket.id }}
+                    onClick={() => {
+                      setActiveTechnicianId(assignedTech.id);
+                      setRole("technician");
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 hover:bg-primary hover:text-primary-foreground text-primary text-xs font-semibold transition-colors"
+                  >
+                    <Smartphone className="size-3.5" />
+                    <span>Open as {assignedTech.name.split(" ")[0]} in Tech App</span>
+                  </Link>
                 </div>
               </div>
             ) : (
