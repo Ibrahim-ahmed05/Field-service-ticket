@@ -28,7 +28,7 @@ export function RoleBar() {
       </summary>
       <div className="role-settings-panel">
         <p>
-          Explore the demo as a manager, technician, or customer. Changes are saved in this browser.
+          Explore the workspace as a manager, technician, or customer. Operational changes are saved in MongoDB.
         </p>
         <div className="role-settings-fields">
           <label>
@@ -80,13 +80,13 @@ export function RoleBar() {
             onClick={() => {
               if (
                 window.confirm(
-                  "Reset tickets and updates to the original demo data? This removes changes saved in this browser.",
+                  "Reload the latest tickets and updates from MongoDB?",
                 )
               )
                 resetToDefaults();
             }}
           >
-            <RotateCcw size={14} /> Reset demo
+            <RotateCcw size={14} /> Refresh data
           </button>
         </div>
       </div>

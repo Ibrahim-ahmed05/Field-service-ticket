@@ -6,30 +6,16 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
   theme: "light",
   toggle: () => {},
 });
-const key = "fieldflow_theme";
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
   useEffect(() => {
     setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
-    const sync = (event: StorageEvent) => {
-      if (event.key === key) {
-        const next = event.newValue === "dark" ? "dark" : "light";
-        document.documentElement.classList.toggle("dark", next === "dark");
-        setTheme(next);
-      }
-    };
-    window.addEventListener("storage", sync);
-    return () => window.removeEventListener("storage", sync);
   }, []);
   const toggle = () => {
     const next = theme === "light" ? "dark" : "light";
     document.documentElement.classList.toggle("dark", next === "dark");
     setTheme(next);
-    try {
-      localStorage.setItem(key, next);
-    } catch {
-      /* Theme still works when storage is unavailable. */
-    }
+    document.cookie = `fieldflow_theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
   };
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>

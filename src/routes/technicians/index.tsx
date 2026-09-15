@@ -244,10 +244,9 @@ function TechniciansPage() {
               unassignedTickets.map((t) => (
                 <div
                   key={t.id}
-                  onClick={() => {
+                  onClick={async () => {
                     if (selectedTech) {
-                      assignTechnician(t.id, selectedTech.id);
-                      setDispatchModalOpen(false);
+                      if (await assignTechnician(t.id, selectedTech.id)) setDispatchModalOpen(false);
                     }
                   }}
                   className="p-3 rounded-xl border border-hairline hover:border-primary hover:bg-muted/50 cursor-pointer transition-all space-y-1.5"

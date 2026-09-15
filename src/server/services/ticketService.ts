@@ -1,4 +1,4 @@
-import { isDbConnected } from "../db";
+import { connectDB, isDbConnected } from "../db";
 import {
   AttachmentModel,
   CommentModel,
@@ -8,6 +8,7 @@ import {
   TechnicianModel,
   TicketHistoryModel,
   TicketModel,
+  NotificationLogModel,
 } from "../models/index";
 import {
   globalNotificationService,
@@ -52,6 +53,15 @@ export interface ListTicketsFilter {
   overdueOnly?: boolean;
 }
 
+export interface UpdateTicketDTO {
+  title?: string;
+  description?: string;
+  category?: string;
+  priority?: TicketPriority;
+  equipmentId?: string | null;
+  workInstructions?: string[];
+}
+
 export interface FullTicketView {
   ticket: Ticket;
   customer: Customer | null;
@@ -67,7 +77,87 @@ export class TicketService {
   constructor(
     private store: FieldServiceStore = globalStore,
     private notificationService: NotificationService = globalNotificationService,
+    private useMongo = false,
   ) {}
+
+  private async hydrateFromMongo() {
+    if (!this.useMongo) return;
+    const db = await connectDB();
+    if (!db || !isDbConnected()) {
+      throw {
+        status: 503,
+        code: "DATABASE_UNAVAILABLE",
+        message: "MongoDB is unavailable. Check MONGODB_URI and the database network access settings.",
+      };
+    }
+
+    const [customers, sites, equipment, technicians, tickets, ticketHistory, attachments, comments] =
+      await Promise.all([
+        CustomerModel.find({}).lean(),
+        SiteModel.find({}).lean(),
+        EquipmentModel.find({}).lean(),
+        TechnicianModel.find({}).lean(),
+        TicketModel.find({}).lean(),
+        TicketHistoryModel.find({}).lean(),
+        AttachmentModel.find({}).lean(),
+        CommentModel.find({}).lean(),
+      ]);
+
+    const clean = <T,>(rows: unknown[]) =>
+      rows.map(({ _id, __v, ...row }) => row) as T[];
+    this.store.customers = clean<Customer>(customers);
+    this.store.sites = clean<Site>(sites);
+    this.store.equipment = clean<Equipment>(equipment);
+    this.store.technicians = clean<Technician>(technicians);
+    this.store.tickets = clean<Ticket>(tickets);
+    this.store.ticketHistory = clean<TicketHistory>(ticketHistory);
+    this.store.attachments = clean<Attachment>(attachments);
+    this.store.comments = clean<Comment>(comments);
+  }
+
+  private async persistNotifications(companyId: string) {
+    if (!this.useMongo) return;
+    const logs = this.notificationService.getLogs(undefined, companyId);
+    if (!logs.length) return;
+    await NotificationLogModel.bulkWrite(
+      logs.map((log) => ({
+        updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true },
+      })),
+    );
+  }
+
+  async getBootstrap(user: AuthUser) {
+    await this.hydrateFromMongo();
+    const company = (row: { companyId?: string }) => row.companyId === user.companyId;
+    const companyTickets = this.store.tickets.filter(company);
+    const tickets = user.role === "TECHNICIAN"
+      ? companyTickets.filter((ticket) => ticket.assignedTechnicianId === (user.technicianId || user.id))
+      : user.role === "CUSTOMER"
+        ? companyTickets.filter((ticket) => ticket.customerId === (user.customerId || user.id))
+        : companyTickets;
+    const ticketIds = new Set(tickets.map((ticket) => ticket.id));
+    const customerIds = new Set(tickets.map((ticket) => ticket.customerId));
+    const siteIds = new Set(tickets.map((ticket) => ticket.siteId));
+    const technicianIds = new Set(tickets.map((ticket) => ticket.assignedTechnicianId).filter(Boolean));
+    const notificationLogs = this.useMongo
+      ? await NotificationLogModel.find({ companyId: user.companyId, ...(user.role === "MANAGER" || user.role === "ADMIN" ? {} : { ticketId: { $in: [...ticketIds] } }) }).lean()
+      : this.notificationService.getLogs(undefined, user.companyId);
+
+    return {
+      customers: this.store.customers.filter((item) => company(item) && (user.role === "MANAGER" || user.role === "ADMIN" || customerIds.has(item.id))),
+      sites: this.store.sites.filter((item) => company(item) && (user.role === "MANAGER" || user.role === "ADMIN" || siteIds.has(item.id))),
+      equipment: this.store.equipment.filter((item) => {
+        const site = this.store.sites.find((candidate) => candidate.id === item.siteId);
+        return site?.companyId === user.companyId && (user.role === "MANAGER" || user.role === "ADMIN" || siteIds.has(item.siteId));
+      }),
+      technicians: this.store.technicians.filter((item) => company(item) && (user.role === "MANAGER" || user.role === "ADMIN" || technicianIds.has(item.id) || item.id === user.technicianId)),
+      tickets,
+      history: this.store.ticketHistory.filter((item) => ticketIds.has(item.ticketId)).map((item) => user.role === "CUSTOMER" ? { ...item, note: undefined } : item),
+      comments: this.store.comments.filter((item) => ticketIds.has(item.ticketId) && (user.role !== "CUSTOMER" || item.customerVisible)),
+      attachments: this.store.attachments.filter((item) => ticketIds.has(item.ticketId) && (user.role !== "CUSTOMER" || item.customerVisible)),
+      notificationLogs: notificationLogs.map(({ _id, __v, ...row }: any) => row),
+    };
+  }
 
   /**
    * Helper to verify and return customer/site/equipment relations
@@ -89,6 +179,7 @@ export class TicketService {
    * POST /tickets: Create ticket (Allowed Roles: Manager, Customer)
    */
   async createTicket(dto: CreateTicketDTO, user: AuthUser): Promise<Ticket> {
+    await this.hydrateFromMongo();
     // RBAC check
     if (user.role === "TECHNICIAN") {
       throw {
@@ -131,11 +222,13 @@ export class TicketService {
       };
     }
 
-    if (dto.equipmentId) {
-      const eq = this.store.equipment.find(
+    const selectedEquipment = dto.equipmentId
+      ? this.store.equipment.find(
         (e) => e.id === dto.equipmentId && e.siteId === dto.siteId,
-      );
-      if (!eq) {
+      )
+      : undefined;
+    if (dto.equipmentId) {
+      if (!selectedEquipment) {
         throw {
           status: 404,
           code: "EQUIPMENT_NOT_FOUND",
@@ -163,6 +256,14 @@ export class TicketService {
       createdBy: user.id,
       category: dto.category,
       companyId: user.companyId,
+      ...( {
+        customerName: customer.name,
+        siteName: (site as any).name,
+        siteAddress: site.address,
+        equipmentModel: selectedEquipment?.model,
+        contact: { name: customer.name, phone: customer.phone, email: customer.email },
+        workInstructions: [],
+      } as any),
     };
 
     this.store.tickets.unshift(ticket);
@@ -180,11 +281,16 @@ export class TicketService {
     };
     this.store.ticketHistory.push(historyEntry);
 
+    if (this.useMongo) {
+      await Promise.all([TicketModel.create(ticket), TicketHistoryModel.create(historyEntry)]);
+    }
+
     // Dispatch Notification: "Ticket created"
     await this.notificationService.notify("Ticket created", ticket, customer, null, {
       name: "Operations Dispatch",
       email: "dispatch@fieldservice.local",
     });
+    await this.persistNotifications(user.companyId);
 
     return withOverdueFlag(ticket);
   }
@@ -193,6 +299,7 @@ export class TicketService {
    * GET /tickets: List tickets with filters (Allowed Role: Manager / Admin)
    */
   async listTickets(filters: ListTicketsFilter, user: AuthUser): Promise<Ticket[]> {
+    await this.hydrateFromMongo();
     if (user.role !== "MANAGER" && user.role !== "ADMIN") {
       throw {
         status: 403,
@@ -233,6 +340,7 @@ export class TicketService {
    * Allowed Roles: Manager, Assigned Technician, Owning Customer
    */
   async getTicketById(ticketId: string, user: AuthUser): Promise<FullTicketView> {
+    await this.hydrateFromMongo();
     const ticket = this.store.tickets.find(
       (t) => t.id === ticketId && t.companyId === user.companyId,
     );
@@ -294,15 +402,76 @@ export class TicketService {
     };
   }
 
+  async updateTicket(ticketId: string, dto: UpdateTicketDTO, user: AuthUser): Promise<Ticket> {
+    await this.hydrateFromMongo();
+    if (user.role !== "MANAGER" && user.role !== "ADMIN") {
+      throw { status: 403, code: "FORBIDDEN_ROLE", message: "Only Managers or Admins can edit tickets." };
+    }
+
+    const ticket = this.store.tickets.find(
+      (item) => item.id === ticketId && item.companyId === user.companyId,
+    );
+    if (!ticket) {
+      throw { status: 404, code: "TICKET_NOT_FOUND", message: `Ticket "${ticketId}" not found.` };
+    }
+    if (ticket.status === "Closed" || ticket.status === "Cancelled") {
+      throw { status: 400, code: "FINAL_TICKET", message: `${ticket.status} tickets cannot be edited.` };
+    }
+
+    if (dto.equipmentId) {
+      const equipment = this.store.equipment.find(
+        (item) => item.id === dto.equipmentId && item.siteId === ticket.siteId,
+      );
+      if (!equipment) {
+        throw { status: 400, code: "INVALID_EQUIPMENT", message: "Equipment must belong to the ticket site." };
+      }
+      ticket.equipmentId = equipment.id;
+      (ticket as any).equipmentModel = equipment.model;
+    } else if (dto.equipmentId === null) {
+      delete ticket.equipmentId;
+      delete (ticket as any).equipmentModel;
+    }
+
+    if (dto.title !== undefined) ticket.title = dto.title.trim();
+    if (dto.description !== undefined) ticket.description = dto.description.trim();
+    if (dto.category !== undefined) ticket.category = dto.category;
+    if (dto.workInstructions !== undefined) (ticket as any).workInstructions = dto.workInstructions;
+    if (dto.priority !== undefined && dto.priority !== ticket.priority) {
+      ticket.priority = dto.priority;
+      ticket.dueDate = calculateDueDate(dto.priority, new Date(ticket.createdAt));
+    }
+    ticket.updatedAt = new Date().toISOString();
+
+    const historyEntry: TicketHistory = {
+      id: `th-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      ticketId: ticket.id,
+      fromStatus: ticket.status,
+      toStatus: ticket.status,
+      changedBy: user.name || user.id,
+      changedAt: ticket.updatedAt,
+      note: "Ticket details updated.",
+      companyId: user.companyId,
+    };
+    this.store.ticketHistory.push(historyEntry);
+    if (this.useMongo) {
+      await Promise.all([
+        TicketModel.updateOne({ id: ticket.id, companyId: user.companyId }, { $set: ticket }),
+        TicketHistoryModel.create(historyEntry),
+      ]);
+    }
+    return withOverdueFlag(ticket);
+  }
+
   /**
    * PATCH /tickets/:id/assign: Assign or reassign a technician (Allowed Role: Manager)
    */
   async assignTechnician(
     ticketId: string,
-    technicianId: string,
+    technicianId: string | null,
     user: AuthUser,
     note?: string,
   ): Promise<Ticket> {
+    await this.hydrateFromMongo();
     if (user.role !== "MANAGER" && user.role !== "ADMIN") {
       throw {
         status: 403,
@@ -318,10 +487,12 @@ export class TicketService {
       throw { status: 404, code: "TICKET_NOT_FOUND", message: `Ticket "${ticketId}" not found.` };
     }
 
-    const technician = this.store.technicians.find(
-      (tech) => tech.id === technicianId && tech.companyId === user.companyId && tech.active,
-    );
-    if (!technician) {
+    const technician = technicianId
+      ? this.store.technicians.find(
+          (tech) => tech.id === technicianId && tech.companyId === user.companyId && tech.active,
+        )
+      : null;
+    if (technicianId && !technician) {
       throw {
         status: 404,
         code: "TECHNICIAN_NOT_FOUND",
@@ -332,12 +503,14 @@ export class TicketService {
     const previousStatus = ticket.status;
     const wasAssigned = Boolean(ticket.assignedTechnicianId);
 
-    ticket.assignedTechnicianId = technician.id;
+    ticket.assignedTechnicianId = technician?.id;
     ticket.updatedAt = new Date().toISOString();
 
     // If ticket was New or Rejected, transition status to Assigned
-    if (ticket.status === "New" || ticket.status === "Rejected") {
+    if (technician && (ticket.status === "New" || ticket.status === "Rejected")) {
       ticket.status = "Assigned";
+    } else if (!technician && ticket.status === "Assigned") {
+      ticket.status = "New";
     }
 
     // Write history
@@ -351,22 +524,36 @@ export class TicketService {
       note:
         note ||
         (wasAssigned
-          ? `Reassigned to technician ${technician.name}`
-          : `Assigned to technician ${technician.name}`),
+          ? technician
+            ? `Reassigned to technician ${technician.name}`
+            : "Technician unassigned"
+          : technician
+            ? `Assigned to technician ${technician.name}`
+            : "Technician unassigned"),
       companyId: user.companyId,
     };
     this.store.ticketHistory.push(historyEntry);
 
+    if (this.useMongo) {
+      await Promise.all([
+        TicketModel.updateOne({ id: ticket.id, companyId: user.companyId }, { $set: ticket }),
+        TicketHistoryModel.create(historyEntry),
+      ]);
+    }
+
     const { customer } = this.getRelations(ticket);
 
     // Dispatch Notification: "Technician assigned"
-    await this.notificationService.notify(
-      "Technician assigned",
-      ticket,
-      customer,
-      technician,
-      { name: user.name || "Manager", email: user.email },
-    );
+    if (technician) {
+      await this.notificationService.notify(
+        "Technician assigned",
+        ticket,
+        customer,
+        technician,
+        { name: user.name || "Manager", email: user.email },
+      );
+      await this.persistNotifications(user.companyId);
+    }
 
     return withOverdueFlag(ticket);
   }
@@ -383,6 +570,7 @@ export class TicketService {
     note?: string,
     isOverride = false,
   ): Promise<Ticket> {
+    await this.hydrateFromMongo();
     const ticket = this.store.tickets.find(
       (t) => t.id === ticketId && t.companyId === user.companyId,
     );
@@ -470,6 +658,13 @@ export class TicketService {
     };
     this.store.ticketHistory.push(historyEntry);
 
+    if (this.useMongo) {
+      await Promise.all([
+        TicketModel.updateOne({ id: ticket.id, companyId: user.companyId }, { $set: ticket }),
+        TicketHistoryModel.create(historyEntry),
+      ]);
+    }
+
     const { customer, assignedTechnician } = this.getRelations(ticket);
 
     // Notification Trigger Handling
@@ -503,6 +698,7 @@ export class TicketService {
         assignedTechnician,
       );
     }
+    await this.persistNotifications(user.companyId);
 
     return withOverdueFlag(ticket);
   }
@@ -517,14 +713,7 @@ export class TicketService {
     customerVisible: boolean,
     user: AuthUser,
   ): Promise<Comment> {
-    if (user.role === "CUSTOMER") {
-      throw {
-        status: 403,
-        code: "FORBIDDEN_ROLE",
-        message: "Direct internal comments are restricted to Managers and Technicians.",
-      };
-    }
-
+    await this.hydrateFromMongo();
     const ticket = this.store.tickets.find(
       (t) => t.id === ticketId && t.companyId === user.companyId,
     );
@@ -541,6 +730,12 @@ export class TicketService {
         };
       }
     }
+    if (user.role === "CUSTOMER") {
+      if (ticket.customerId !== (user.customerId || user.id)) {
+        throw { status: 403, code: "CUSTOMER_ACCESS_DENIED", message: "Customers may only comment on their own tickets." };
+      }
+      customerVisible = true;
+    }
 
     const comment: Comment = {
       id: `c-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -555,6 +750,7 @@ export class TicketService {
     };
 
     this.store.comments.push(comment);
+    if (this.useMongo) await CommentModel.create(comment);
     return comment;
   }
 
@@ -572,6 +768,7 @@ export class TicketService {
     customerVisible: boolean,
     user: AuthUser,
   ): Promise<Attachment> {
+    await this.hydrateFromMongo();
     if (user.role === "CUSTOMER") {
       throw {
         status: 403,
@@ -630,6 +827,7 @@ export class TicketService {
     };
 
     this.store.attachments.push(attachment);
+    if (this.useMongo) await AttachmentModel.create(attachment);
     return attachment;
   }
 
@@ -637,6 +835,7 @@ export class TicketService {
    * GET /tickets/:id/history: Chronological status audit history
    */
   async getTicketHistory(ticketId: string, user: AuthUser): Promise<TicketHistory[]> {
+    await this.hydrateFromMongo();
     await this.getTicketById(ticketId, user); // verifies existence & access
 
     return this.store.ticketHistory
@@ -649,6 +848,7 @@ export class TicketService {
    * Allowed Roles: Manager, That Specific Technician
    */
   async getTechnicianJobs(technicianId: string, user: AuthUser): Promise<Ticket[]> {
+    await this.hydrateFromMongo();
     if (user.role === "TECHNICIAN") {
       if ((user.technicianId || user.id) !== technicianId) {
         throw {
@@ -677,6 +877,7 @@ export class TicketService {
    * Allowed Roles: Manager, That Specific Customer
    */
   async getCustomerTickets(customerId: string, user: AuthUser): Promise<Ticket[]> {
+    await this.hydrateFromMongo();
     if (user.role === "CUSTOMER") {
       if ((user.customerId || user.id) !== customerId) {
         throw {
@@ -705,6 +906,7 @@ export class TicketService {
    * Allowed Role: Manager / Admin
    */
   async getDashboardMetrics(user: AuthUser): Promise<DashboardMetrics> {
+    await this.hydrateFromMongo();
     if (user.role !== "MANAGER" && user.role !== "ADMIN") {
       throw {
         status: 403,
@@ -754,4 +956,4 @@ export class TicketService {
 }
 
 // Global shared service singleton
-export const globalTicketService = new TicketService();
+export const globalTicketService = new TicketService(globalStore, globalNotificationService, true);

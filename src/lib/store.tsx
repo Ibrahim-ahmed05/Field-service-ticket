@@ -1,604 +1,126 @@
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import {
-  initialCustomers,
-  initialEquipment,
-  initialHistory,
-  initialNotes,
-  initialNotificationLogs,
-  initialSites,
-  initialTechnicians,
-  initialTickets,
-  initialAttachments,
-  calculateDueDate,
-  canTransition,
-  type Attachment,
-  type Category,
-  type Customer,
-  type Equipment,
-  type Note,
-  type NotificationLog,
-  type Priority,
-  type Site,
-  type Technician,
-  type Ticket,
-  type TicketHistory,
-  type TicketStatus,
-  type UserRole,
-} from "./fieldflow-data";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import type { Attachment, Category, Customer, Equipment, Note, NotificationLog, Priority, Site, Technician, Ticket, TicketHistory, TicketStatus, UserRole } from "./fieldflow-data";
+
+type TicketInput = { customerId: string; siteId: string; equipmentId?: string; title: string; description: string; category: Category; priority: Priority; assignedTechnicianId?: string | null; workInstructions?: string[] };
+type TicketEdit = Partial<Pick<TicketInput, "title" | "description" | "category" | "priority" | "workInstructions">> & { equipmentId?: string };
+type RawNote = Note & { authorName?: string; text?: string; createdAt?: string; customerVisible?: boolean };
+type RawAttachment = Attachment & { fileName?: string };
+type BootstrapData = { tickets: Ticket[]; technicians: Technician[]; customers: Customer[]; sites: Site[]; equipment: Equipment[]; history: TicketHistory[]; comments: RawNote[]; attachments: RawAttachment[]; notificationLogs: NotificationLog[] };
 
 interface FieldFlowContextType {
-  role: UserRole;
-  setRole: (role: UserRole) => void;
-  activeTechnicianId: string;
-  setActiveTechnicianId: (id: string) => void;
-  activeCustomerId: string;
-  setActiveCustomerId: (id: string) => void;
-  
-  tickets: Ticket[];
-  technicians: Technician[];
-  customers: Customer[];
-  sites: Site[];
-  equipment: Equipment[];
-  history: TicketHistory[];
-  notes: Note[];
-  attachments: Attachment[];
-  notificationLogs: NotificationLog[];
-
-  // Store actions
-  createTicket: (data: {
-    customerId: string;
-    siteId: string;
-    equipmentId?: string;
-    title: string;
-    description: string;
-    category: Category;
-    priority: Priority;
-    assignedTechnicianId?: string | null;
-    workInstructions?: string[];
-  }) => Ticket;
-
-  editTicket: (
-    ticketId: string,
-    data: {
-      title?: string;
-      description?: string;
-      category?: Category;
-      priority?: Priority;
-      equipmentId?: string;
-      workInstructions?: string[];
-    }
-  ) => boolean;
-
-  assignTechnician: (ticketId: string, technicianId: string | null) => boolean;
-
-  updateTicketStatus: (
-    ticketId: string,
-    toStatus: TicketStatus,
-    note?: string,
-    evidence?: { name: string; url: string; customerVisible: boolean; tone?: Attachment["tone"] }
-  ) => boolean;
-
-  addNote: (ticketId: string, body: string, internal: boolean) => Note;
-
-  uploadAttachment: (
-    ticketId: string,
-    file: { name: string; fileUrl: string; fileType: Attachment["fileType"]; fileSize: string; customerVisible: boolean; tone?: Attachment["tone"] }
-  ) => Attachment;
-
-  confirmResolution: (ticketId: string, feedback?: string) => boolean;
-
-  resetToDefaults: () => void;
-
-  // Query helpers
-  getTicket: (id: string) => Ticket | undefined;
-  getTechnician: (id: string | null) => Technician | undefined;
-  getCustomer: (id: string) => Customer | undefined;
-  getSite: (id: string) => Site | undefined;
-  getEquipmentForSite: (siteId: string) => Equipment[];
-  getSitesForCustomer: (customerId: string) => Site[];
-  getRepeatIssueCountForSite: (siteId: string) => number;
-  getRepeatIssueCountForEquipment: (equipmentId?: string) => number;
+  role: UserRole; setRole: (role: UserRole) => void;
+  activeTechnicianId: string; setActiveTechnicianId: (id: string) => void;
+  activeCustomerId: string; setActiveCustomerId: (id: string) => void;
+  tickets: Ticket[]; technicians: Technician[]; customers: Customer[]; sites: Site[]; equipment: Equipment[];
+  history: TicketHistory[]; notes: Note[]; attachments: Attachment[]; notificationLogs: NotificationLog[];
+  createTicket: (data: TicketInput) => Promise<Ticket>;
+  editTicket: (ticketId: string, data: TicketEdit) => Promise<boolean>;
+  assignTechnician: (ticketId: string, technicianId: string | null) => Promise<boolean>;
+  updateTicketStatus: (ticketId: string, toStatus: TicketStatus, note?: string, evidence?: { name: string; url: string; customerVisible: boolean; tone?: Attachment["tone"] }) => Promise<boolean>;
+  addNote: (ticketId: string, body: string, internal: boolean) => Promise<Note>;
+  uploadAttachment: (ticketId: string, file: { name: string; fileUrl: string; fileType: Attachment["fileType"]; fileSize: string; customerVisible: boolean; tone?: Attachment["tone"] }) => Promise<Attachment>;
+  confirmResolution: (ticketId: string, feedback?: string) => Promise<boolean>;
+  resetToDefaults: () => Promise<void>;
+  getTicket: (id: string) => Ticket | undefined; getTechnician: (id: string | null) => Technician | undefined;
+  getCustomer: (id: string) => Customer | undefined; getSite: (id: string) => Site | undefined;
+  getEquipmentForSite: (siteId: string) => Equipment[]; getSitesForCustomer: (customerId: string) => Site[];
+  getRepeatIssueCountForSite: (siteId: string) => number; getRepeatIssueCountForEquipment: (equipmentId?: string) => number;
 }
 
-const STORAGE_KEY = "fieldflow_app_state_v3";
-
+const emptyData = { tickets: [] as Ticket[], technicians: [] as Technician[], customers: [] as Customer[], sites: [] as Site[], equipment: [] as Equipment[], history: [] as TicketHistory[], notes: [] as Note[], attachments: [] as Attachment[], notificationLogs: [] as NotificationLog[] };
 const FieldFlowContext = createContext<FieldFlowContextType | null>(null);
+const errorText = (error: unknown) => error instanceof Error ? error.message : "The request could not be completed.";
+const fileSizeToBytes = (value: string) => { const n = Number.parseFloat(value) || 0; return /mb/i.test(value) ? Math.round(n * 1048576) : /kb/i.test(value) ? Math.round(n * 1024) : Math.round(n); };
 
 export function FieldFlowProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole>("manager");
-  const [activeTechnicianId, setActiveTechnicianId] = useState<string>("t1");
-  const [activeCustomerId, setActiveCustomerId] = useState<string>("c1");
+  const [activeTechnicianId, setActiveTechnicianId] = useState("t1");
+  const [activeCustomerId, setActiveCustomerId] = useState("c1");
+  const [data, setData] = useState(emptyData);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
-  const [technicians, setTechnicians] = useState<Technician[]>(initialTechnicians);
-  const [customers] = useState<Customer[]>(initialCustomers);
-  const [sites] = useState<Site[]>(initialSites);
-  const [equipment] = useState<Equipment[]>(initialEquipment);
-  const [history, setHistory] = useState<TicketHistory[]>(initialHistory);
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
-  const [attachments, setAttachments] = useState<Attachment[]>(initialAttachments);
-  const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>(initialNotificationLogs);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const authHeaders = useMemo(() => {
+    const headers: Record<string, string> = { "Content-Type": "application/json", "x-user-role": role.toUpperCase(), "x-company-id": "comp-1" };
+    if (role === "technician") {
+      Object.assign(headers, { "x-user-id": activeTechnicianId, "x-technician-id": activeTechnicianId, "x-user-name": "Technician", "x-user-email": "technician@fieldflow.local" });
+    } else if (role === "customer") {
+      Object.assign(headers, { "x-user-id": activeCustomerId, "x-customer-id": activeCustomerId, "x-user-name": "Customer", "x-user-email": "customer@fieldflow.local" });
+    } else Object.assign(headers, { "x-user-id": "user-manager-1", "x-user-name": "Alex Morgan", "x-user-email": "manager@fieldflow.local" });
+    return headers;
+  }, [role, activeTechnicianId, activeCustomerId]);
 
-  // Safe client hydration to prevent SSR mismatch and routing freeze
-  useEffect(() => {
+  const request = useCallback(async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
+    const response = await fetch(path, { ...init, headers: { ...authHeaders, ...(init.headers || {}) } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.message || `Request failed (${response.status})`);
+    return payload as T;
+  }, [authHeaders]);
+
+  const refreshData = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
-      const savedRole = localStorage.getItem(`${STORAGE_KEY}_role`);
-      if (savedRole) setRole(savedRole as UserRole);
-
-      const savedTechId = localStorage.getItem(`${STORAGE_KEY}_activeTechId`);
-      if (savedTechId) setActiveTechnicianId(savedTechId);
-
-      const savedCustId = localStorage.getItem(`${STORAGE_KEY}_activeCustId`);
-      if (savedCustId) setActiveCustomerId(savedCustId);
-
-      const savedTickets = localStorage.getItem(`${STORAGE_KEY}_tickets`);
-      if (savedTickets) setTickets(JSON.parse(savedTickets));
-
-      const savedTechs = localStorage.getItem(`${STORAGE_KEY}_technicians`);
-      if (savedTechs) setTechnicians(JSON.parse(savedTechs));
-
-      const savedHist = localStorage.getItem(`${STORAGE_KEY}_history`);
-      if (savedHist) setHistory(JSON.parse(savedHist));
-
-      const savedNotes = localStorage.getItem(`${STORAGE_KEY}_notes`);
-      if (savedNotes) setNotes(JSON.parse(savedNotes));
-
-      const savedAtts = localStorage.getItem(`${STORAGE_KEY}_attachments`);
-      if (savedAtts) setAttachments(JSON.parse(savedAtts));
-
-      const savedNotifs = localStorage.getItem(`${STORAGE_KEY}_notifications`);
-      if (savedNotifs) setNotificationLogs(JSON.parse(savedNotifs));
-    } catch (e) {
-      console.warn("Could not load stored demo state", e);
-    }
-    setIsHydrated(true);
-  }, []);
-
-  // Save to localStorage after hydration
-  useEffect(() => {
-    if (!isHydrated || typeof window === "undefined") return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_role`, role);
-      localStorage.setItem(`${STORAGE_KEY}_activeTechId`, activeTechnicianId);
-      localStorage.setItem(`${STORAGE_KEY}_activeCustId`, activeCustomerId);
-      localStorage.setItem(`${STORAGE_KEY}_tickets`, JSON.stringify(tickets));
-      localStorage.setItem(`${STORAGE_KEY}_technicians`, JSON.stringify(technicians));
-      localStorage.setItem(`${STORAGE_KEY}_history`, JSON.stringify(history));
-      localStorage.setItem(`${STORAGE_KEY}_notes`, JSON.stringify(notes));
-      localStorage.setItem(`${STORAGE_KEY}_attachments`, JSON.stringify(attachments));
-      localStorage.setItem(`${STORAGE_KEY}_notifications`, JSON.stringify(notificationLogs));
-    } catch (e) {
-      console.warn("Could not save state to localStorage", e);
-    }
-  }, [isHydrated, role, activeTechnicianId, activeCustomerId, tickets, technicians, history, notes, attachments, notificationLogs]);
-
-  const getTicket = (id: string) => tickets.find((t) => t.id === id);
-  const getTechnician = (id: string | null) => technicians.find((t) => t.id === id);
-  const getCustomer = (id: string) => customers.find((c) => c.id === id);
-  const getSite = (id: string) => sites.find((s) => s.id === id);
-  const getEquipmentForSite = (siteId: string) => equipment.filter((e) => e.siteId === siteId);
-  const getSitesForCustomer = (customerId: string) => sites.filter((s) => s.customerId === customerId);
-
-  const getRepeatIssueCountForSite = (siteId: string) => {
-    return tickets.filter((t) => t.siteId === siteId).length;
-  };
-
-  const getRepeatIssueCountForEquipment = (equipmentId?: string) => {
-    if (!equipmentId) return 0;
-    return tickets.filter((t) => t.equipmentId === equipmentId).length;
-  };
-
-  // Auto-send notification logger
-  const dispatchNotification = (
-    ticket: Ticket,
-    triggerEvent: NotificationLog["triggerEvent"],
-    channel: NotificationLog["channel"] = "DevLog",
-    customRecipient?: string,
-    message?: string
-  ) => {
-    const tech = getTechnician(ticket.assignedTechnicianId);
-    const recipient = customRecipient || (tech ? `${tech.phone} (${tech.name})` : ticket.contact.phone || "Operations Queue");
-    const preview = message || `FieldFlow Notification: [${triggerEvent}] Ticket #${ticket.id} (${ticket.title}) is now ${ticket.status}.`;
-    
-    const newLog: NotificationLog = {
-      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      ticketId: ticket.id,
-      channel,
-      recipient,
-      status: channel === "DevLog" ? "Logged" : "Delivered",
-      sentAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      triggerEvent,
-      messagePreview: preview,
-    };
-
-    setNotificationLogs((prev) => [newLog, ...prev]);
-  };
-
-  const createTicket = (data: {
-    customerId: string;
-    siteId: string;
-    equipmentId?: string;
-    title: string;
-    description: string;
-    category: Category;
-    priority: Priority;
-    assignedTechnicianId?: string | null;
-    workInstructions?: string[];
-  }): Ticket => {
-    const cust = getCustomer(data.customerId);
-    const site = getSite(data.siteId);
-    const eq = data.equipmentId ? equipment.find((e) => e.id === data.equipmentId) : undefined;
-    
-    const count = tickets.length + 2055;
-    const newId = `TKT-${count}`;
-    const createdAt = new Date().toISOString();
-    const dueDate = calculateDueDate(createdAt, data.priority);
-    const initialStatus: TicketStatus = data.assignedTechnicianId ? "Assigned" : "New";
-
-    const newTicket: Ticket = {
-      id: newId,
-      companyId: cust?.companyId || "comp-1",
-      customerId: data.customerId,
-      customerName: cust?.name || "Customer",
-      siteId: data.siteId,
-      siteName: site?.name || "Main Site",
-      siteAddress: site?.address || "Karachi",
-      equipmentId: data.equipmentId,
-      equipmentModel: eq?.model,
-      contact: {
-        name: cust?.name.split(" ")[0] || "Facility Manager",
-        phone: cust?.phone || "+92 21 0000 0000",
-        email: cust?.email,
-      },
-      title: data.title,
-      description: data.description,
-      category: data.category,
-      priority: data.priority,
-      status: initialStatus,
-      assignedTechnicianId: data.assignedTechnicianId || null,
-      createdBy: role === "customer" ? `${cust?.name || "Customer"} (Customer Portal)` : "Alex Morgan (Manager)",
-      createdAt,
-      dueDate,
-      workInstructions: data.workInstructions || [],
-    };
-
-    setTickets((prev) => [newTicket, ...prev]);
-
-    // History entry
-    const newHist: TicketHistory = {
-      id: `h-${Date.now()}`,
-      ticketId: newId,
-      fromStatus: null,
-      toStatus: initialStatus,
-      changedBy: role === "customer" ? cust?.name || "Customer" : "Alex Morgan (Manager)",
-      changedAt: createdAt,
-      note: "Ticket reported and registered in system.",
-    };
-    setHistory((prev) => [newHist, ...prev]);
-
-    // Dispatch notification
-    dispatchNotification(newTicket, "Ticket created", "WhatsApp", cust?.phone, `Ticket #${newId} created: ${data.title}. Priority: ${data.priority}`);
-    if (data.assignedTechnicianId) {
-      const tech = getTechnician(data.assignedTechnicianId);
-      dispatchNotification(newTicket, "Technician assigned", "SMS", tech?.phone, `FieldFlow Dispatch: Assigned to Ticket #${newId}`);
-    }
-
-    toast.success(`Ticket #${newId} created successfully`);
-    return newTicket;
-  };
-
-  const editTicket = (
-    ticketId: string,
-    data: {
-      title?: string;
-      description?: string;
-      category?: Category;
-      priority?: Priority;
-      equipmentId?: string;
-      workInstructions?: string[];
-    }
-  ): boolean => {
-    const ticket = getTicket(ticketId);
-    if (!ticket) return false;
-
-    const eq = data.equipmentId ? equipment.find((e) => e.id === data.equipmentId) : undefined;
-    const newDueDate = data.priority && data.priority !== ticket.priority ? calculateDueDate(ticket.createdAt, data.priority) : ticket.dueDate;
-
-    setTickets((prev) =>
-      prev.map((t) => {
-        if (t.id !== ticketId) return t;
-        return {
-          ...t,
-          title: data.title !== undefined ? data.title : t.title,
-          description: data.description !== undefined ? data.description : t.description,
-          category: data.category !== undefined ? data.category : t.category,
-          priority: data.priority !== undefined ? data.priority : t.priority,
-          equipmentId: data.equipmentId !== undefined ? data.equipmentId : t.equipmentId,
-          equipmentModel: eq?.model || t.equipmentModel,
-          workInstructions: data.workInstructions !== undefined ? data.workInstructions : t.workInstructions,
-          dueDate: newDueDate,
-        };
-      })
-    );
-
-    // Audit trail history
-    const histEntry: TicketHistory = {
-      id: `h-${Date.now()}`,
-      ticketId,
-      fromStatus: ticket.status,
-      toStatus: ticket.status,
-      changedBy: role === "manager" ? "Alex Morgan (Manager)" : "Customer",
-      changedAt: new Date().toISOString(),
-      note: `Ticket details updated (Title/Priority/Scope).`,
-    };
-    setHistory((prev) => [histEntry, ...prev]);
-
-    toast.success(`Ticket #${ticketId} updated successfully`);
-    return true;
-  };
-
-  const assignTechnician = (ticketId: string, technicianId: string | null): boolean => {
-    if (role !== "manager") {
-      toast.error("Only Managers or Admins can assign technicians.");
-      return false;
-    }
-
-    const ticket = getTicket(ticketId);
-    if (!ticket) return false;
-
-    if (ticket.status === "Closed" || ticket.status === "Cancelled") {
-      toast.error(`Cannot assign technician to ${ticket.status} ticket.`);
-      return false;
-    }
-
-    const tech = getTechnician(technicianId);
-    const nextStatus: TicketStatus = technicianId ? (ticket.status === "New" || ticket.status === "Rejected" ? "Assigned" : ticket.status) : "New";
-
-    setTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, assignedTechnicianId: technicianId, status: nextStatus } : t))
-    );
-
-    // Update technician workload
-    if (technicianId) {
-      setTechnicians((prev) =>
-        prev.map((t) => (t.id === technicianId ? { ...t, activeJobs: t.activeJobs + 1 } : t))
-      );
-    }
-
-    const histEntry: TicketHistory = {
-      id: `h-${Date.now()}`,
-      ticketId,
-      fromStatus: ticket.status,
-      toStatus: nextStatus,
-      changedBy: "Alex Morgan (Manager)",
-      changedAt: new Date().toISOString(),
-      note: tech ? `Assigned to technician ${tech.name} (${tech.specialization}).` : "Unassigned technician.",
-    };
-    setHistory((prev) => [histEntry, ...prev]);
-
-    if (tech) {
-      dispatchNotification(ticket, "Technician assigned", "SMS", tech.phone, `FieldFlow: You were assigned to ticket #${ticket.id}`);
-      toast.success(`Assigned to ${tech.name}`);
-    } else {
-      toast.info("Ticket marked unassigned");
-    }
-
-    return true;
-  };
-
-  const updateTicketStatus = (
-    ticketId: string,
-    toStatus: TicketStatus,
-    note?: string,
-    evidence?: { name: string; url: string; customerVisible: boolean; tone?: Attachment["tone"] }
-  ): boolean => {
-    const ticket = getTicket(ticketId);
-    if (!ticket) return false;
-
-    // Check transition rules
-    const check = canTransition(ticket.status, toStatus, role);
-    if (!check.allowed) {
-      toast.error("Status transition blocked", {
-        description: check.reason,
+      const { data: raw } = await request<{ data: BootstrapData }>("/api/v1/bootstrap");
+      const notes: Note[] = raw.comments.map((item) => ({ id: item.id, ticketId: item.ticketId, author: item.author || item.authorName || "User", authorRole: String(item.authorRole).toLowerCase() as UserRole, time: item.time || item.createdAt || "Just now", body: item.body || item.text || "", internal: item.internal ?? !item.customerVisible }));
+      const attachments: Attachment[] = raw.attachments.map((item) => {
+        const size = typeof item.fileSize === "number" ? `${(item.fileSize / 1048576).toFixed(1)} MB` : String(item.fileSize);
+        return { ...item, name: item.name || item.fileName || "Attachment", fileSize: size };
       });
-      return false;
-    }
+      setData({ tickets: raw.tickets, technicians: raw.technicians, customers: raw.customers, sites: raw.sites, equipment: raw.equipment, history: raw.history, notes, attachments, notificationLogs: raw.notificationLogs });
+      setLoadError(null);
+    } catch (error) { setLoadError(errorText(error)); }
+    finally { setLoading(false); }
+  }, [request]);
+  useEffect(() => { void refreshData(true); }, [refreshData]);
 
-    const currentTech = getTechnician(activeTechnicianId);
-    const actor = role === "manager"
-      ? "Alex Morgan (Manager)"
-      : role === "technician"
-      ? `${currentTech?.name || "Technician"} (Technician)`
-      : `${ticket.customerName} (Customer)`;
-
-    // Update Ticket
-    setTickets((prev) =>
-      prev.map((t) => {
-        if (t.id !== ticketId) return t;
-        return {
-          ...t,
-          status: toStatus,
-          resolution: toStatus === "Resolved" || toStatus === "Closed" ? note || t.resolution : t.resolution,
-        };
-      })
-    );
-
-    // Add History
-    const newHist: TicketHistory = {
-      id: `h-${Date.now()}`,
-      ticketId,
-      fromStatus: ticket.status,
-      toStatus,
-      changedBy: actor,
-      changedAt: new Date().toISOString(),
-      note: note || `Status transitioned from ${ticket.status} to ${toStatus}.`,
-    };
-    setHistory((prev) => [newHist, ...prev]);
-
-    // Attach evidence if provided
-    if (evidence) {
-      const newAtt: Attachment = {
-        id: `att-${Date.now()}`,
-        ticketId,
-        name: evidence.name || "field_evidence.png",
-        uploadedBy: actor,
-        fileUrl: evidence.url || "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=600&auto=format&fit=crop&q=80",
-        fileType: "image/png",
-        fileSize: "1.2 MB",
-        uploadedAt: "Just now",
-        customerVisible: evidence.customerVisible,
-        tone: evidence.tone || "fix",
-      };
-      setAttachments((prev) => [newAtt, ...prev]);
-    }
-
-    // Trigger Notification Events
-    if (toStatus === "In Progress") {
-      dispatchNotification(ticket, "Status changed to In Progress", "Email", ticket.contact.email, `Technician has commenced work on ticket #${ticket.id}`);
-    } else if (toStatus === "Resolved") {
-      dispatchNotification(ticket, "Status changed to Resolved", "WhatsApp", ticket.contact.phone, `Ticket #${ticket.id} is now Resolved. Please verify and confirm.`);
-    } else if (toStatus === "Closed") {
-      dispatchNotification(ticket, "Status changed to Closed", "Email", ticket.contact.email, `Ticket #${ticket.id} resolution confirmed and closed.`);
-    } else if (toStatus === "Cancelled") {
-      dispatchNotification(ticket, "Ticket cancelled", "Email", ticket.contact.email, `Ticket #${ticket.id} was withdrawn.`);
-    }
-
-    toast.success(`Status updated to ${toStatus}`);
-    return true;
+  const createTicket = async (input: TicketInput) => {
+    try {
+      let { ticket } = await request<{ ticket: Ticket }>("/api/v1/tickets/", { method: "POST", body: JSON.stringify({ ...input, assignedTechnicianId: undefined, workInstructions: undefined }) });
+      if (input.assignedTechnicianId) ({ ticket } = await request<{ ticket: Ticket }>(`/api/v1/tickets/${ticket.id}/assign`, { method: "PATCH", body: JSON.stringify({ technicianId: input.assignedTechnicianId }) }));
+      if (role === "manager" && input.workInstructions?.length) ({ ticket } = await request<{ ticket: Ticket }>(`/api/v1/tickets/${ticket.id}/`, { method: "PATCH", body: JSON.stringify({ workInstructions: input.workInstructions }) }));
+      await refreshData(); toast.success(`Ticket #${ticket.id} created successfully`); return ticket;
+    } catch (error) { toast.error("Ticket creation failed", { description: errorText(error) }); throw error; }
   };
-
-  const addNote = (ticketId: string, body: string, internal: boolean): Note => {
-    const currentTech = getTechnician(activeTechnicianId);
-    const author = role === "manager"
-      ? "Alex Morgan (Manager)"
-      : role === "technician"
-      ? currentTech?.name || "Technician"
-      : "Customer";
-
-    const newNote: Note = {
-      id: `n-${Date.now()}`,
-      ticketId,
-      author,
-      authorRole: role,
-      time: "Just now",
-      body,
-      internal,
-    };
-
-    setNotes((prev) => [newNote, ...prev]);
-    toast.success(internal ? "Internal note saved" : "Public note shared with customer");
-    return newNote;
+  const editTicket = async (ticketId: string, update: TicketEdit) => {
+    try { await request(`/api/v1/tickets/${ticketId}/`, { method: "PATCH", body: JSON.stringify({ ...update, equipmentId: update.equipmentId ?? null }) }); await refreshData(); toast.success(`Ticket #${ticketId} updated successfully`); return true; }
+    catch (error) { toast.error("Ticket update failed", { description: errorText(error) }); return false; }
   };
-
-  const uploadAttachment = (
-    ticketId: string,
-    file: { name: string; fileUrl: string; fileType: Attachment["fileType"]; fileSize: string; customerVisible: boolean; tone?: Attachment["tone"] }
-  ): Attachment => {
-    const currentTech = getTechnician(activeTechnicianId);
-    const uploadedBy = role === "manager" ? "Alex Morgan" : currentTech?.name || "Technician";
-
-    const newAtt: Attachment = {
-      id: `att-${Date.now()}`,
-      ticketId,
-      name: file.name,
-      uploadedBy,
-      fileUrl: file.fileUrl,
-      fileType: file.fileType,
-      fileSize: file.fileSize,
-      uploadedAt: "Just now",
-      customerVisible: file.customerVisible,
-      tone: file.tone,
-    };
-
-    setAttachments((prev) => [newAtt, ...prev]);
-    toast.success(`File uploaded (${file.customerVisible ? "Customer visible" : "Internal only"})`);
-    return newAtt;
+  const assignTechnician = async (ticketId: string, technicianId: string | null) => {
+    try { await request(`/api/v1/tickets/${ticketId}/assign`, { method: "PATCH", body: JSON.stringify({ technicianId }) }); await refreshData(); toast.success(technicianId ? "Technician assigned" : "Ticket marked unassigned"); return true; }
+    catch (error) { toast.error("Assignment failed", { description: errorText(error) }); return false; }
   };
-
-  const confirmResolution = (ticketId: string, feedback?: string): boolean => {
-    const ticket = getTicket(ticketId);
-    if (!ticket) return false;
-
-    if (ticket.status !== "Resolved") {
-      toast.error("Only Resolved tickets can be confirmed as Closed.");
-      return false;
-    }
-
-    return updateTicketStatus(
-      ticketId,
-      "Closed",
-      feedback ? `Customer confirmed resolution: "${feedback}"` : "Customer confirmed service resolution. Ticket final."
-    );
+  const updateTicketStatus = async (ticketId: string, toStatus: TicketStatus, note?: string, evidence?: Parameters<FieldFlowContextType["updateTicketStatus"]>[3]) => {
+    try {
+      await request(`/api/v1/tickets/${ticketId}/status`, { method: "PATCH", body: JSON.stringify({ status: toStatus, note }) });
+      if (evidence) await request(`/api/v1/tickets/${ticketId}/attachments`, { method: "POST", body: JSON.stringify({ fileName: evidence.name, fileUrl: evidence.url, fileType: "image/png", fileSize: 1258291, customerVisible: evidence.customerVisible, tone: evidence.tone }) });
+      await refreshData(); toast.success(`Status updated to ${toStatus}`); return true;
+    } catch (error) { toast.error("Status update blocked", { description: errorText(error) }); return false; }
   };
-
-  const resetToDefaults = () => {
-    setTickets(initialTickets);
-    setTechnicians(initialTechnicians);
-    setHistory(initialHistory);
-    setNotes(initialNotes);
-    setAttachments(initialAttachments);
-    setNotificationLogs(initialNotificationLogs);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(`${STORAGE_KEY}_role`);
-      localStorage.removeItem(`${STORAGE_KEY}_activeTechId`);
-      localStorage.removeItem(`${STORAGE_KEY}_activeCustId`);
-      localStorage.removeItem(`${STORAGE_KEY}_tickets`);
-      localStorage.removeItem(`${STORAGE_KEY}_technicians`);
-      localStorage.removeItem(`${STORAGE_KEY}_history`);
-      localStorage.removeItem(`${STORAGE_KEY}_notes`);
-      localStorage.removeItem(`${STORAGE_KEY}_attachments`);
-      localStorage.removeItem(`${STORAGE_KEY}_notifications`);
-    }
-    toast.info("Database reset to factory demo values");
+  const addNote = async (ticketId: string, body: string, internal: boolean) => {
+    try {
+      const { comment } = await request<{ comment: any }>(`/api/v1/tickets/${ticketId}/comments`, { method: "POST", body: JSON.stringify({ text: body, customerVisible: !internal }) });
+      await refreshData(); toast.success(internal ? "Internal note saved" : "Public note shared");
+      return { id: comment.id, ticketId, author: comment.authorName, authorRole: String(comment.authorRole).toLowerCase(), time: comment.createdAt, body: comment.text, internal: !comment.customerVisible } as Note;
+    } catch (error) { toast.error("Note could not be saved", { description: errorText(error) }); throw error; }
   };
+  const uploadAttachment = async (ticketId: string, file: Parameters<FieldFlowContextType["uploadAttachment"]>[1]) => {
+    try {
+      const { attachment } = await request<{ attachment: Attachment }>(`/api/v1/tickets/${ticketId}/attachments`, { method: "POST", body: JSON.stringify({ fileName: file.name, fileUrl: file.fileUrl, fileType: file.fileType, fileSize: fileSizeToBytes(file.fileSize), customerVisible: file.customerVisible, tone: file.tone }) });
+      await refreshData(); toast.success("Evidence uploaded"); return attachment;
+    } catch (error) { toast.error("Upload failed", { description: errorText(error) }); throw error; }
+  };
+  const confirmResolution = (ticketId: string, feedback?: string) => updateTicketStatus(ticketId, "Closed", feedback || "Customer confirmed resolution.");
+  const resetToDefaults = async () => { await refreshData(true); toast.success("Latest MongoDB data loaded"); };
 
-  return (
-    <FieldFlowContext.Provider
-      value={{
-        role,
-        setRole,
-        activeTechnicianId,
-        setActiveTechnicianId,
-        activeCustomerId,
-        setActiveCustomerId,
-        tickets,
-        technicians,
-        customers,
-        sites,
-        equipment,
-        history,
-        notes,
-        attachments,
-        notificationLogs,
-        createTicket,
-        editTicket,
-        assignTechnician,
-        updateTicketStatus,
-        addNote,
-        uploadAttachment,
-        confirmResolution,
-        resetToDefaults,
-        getTicket,
-        getTechnician,
-        getCustomer,
-        getSite,
-        getEquipmentForSite,
-        getSitesForCustomer,
-        getRepeatIssueCountForSite,
-        getRepeatIssueCountForEquipment,
-      }}
-    >
-      {children}
-    </FieldFlowContext.Provider>
-  );
+  if (loading) return <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Loading workspace data…</div>;
+  if (loadError) return <div className="grid min-h-screen place-items-center bg-background px-6"><div className="max-w-md rounded-2xl border border-border bg-card p-6 text-center shadow-sm"><h1 className="text-lg font-semibold">Database connection unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{loadError}</p><button className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={() => void refreshData(true)}>Try again</button></div></div>;
+
+  const value: FieldFlowContextType = { ...data, role, setRole, activeTechnicianId, setActiveTechnicianId, activeCustomerId, setActiveCustomerId,
+    createTicket, editTicket, assignTechnician, updateTicketStatus, addNote, uploadAttachment, confirmResolution, resetToDefaults,
+    getTicket: (id) => data.tickets.find((item) => item.id === id), getTechnician: (id) => data.technicians.find((item) => item.id === id), getCustomer: (id) => data.customers.find((item) => item.id === id), getSite: (id) => data.sites.find((item) => item.id === id),
+    getEquipmentForSite: (siteId) => data.equipment.filter((item) => item.siteId === siteId), getSitesForCustomer: (customerId) => data.sites.filter((item) => item.customerId === customerId), getRepeatIssueCountForSite: (siteId) => data.tickets.filter((item) => item.siteId === siteId).length, getRepeatIssueCountForEquipment: (equipmentId) => equipmentId ? data.tickets.filter((item) => item.equipmentId === equipmentId).length : 0 };
+  return <FieldFlowContext.Provider value={value}>{children}</FieldFlowContext.Provider>;
 }
 
-export function useFieldFlow() {
-  const context = useContext(FieldFlowContext);
-  if (!context) {
-    throw new Error("useFieldFlow must be used within a FieldFlowProvider");
-  }
-  return context;
-}
+export function useFieldFlow() { const context = useContext(FieldFlowContext); if (!context) throw new Error("useFieldFlow must be used inside FieldFlowProvider"); return context; }

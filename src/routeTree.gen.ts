@@ -19,6 +19,7 @@ import { Route as TechniciansIndexRouteImport } from './routes/technicians/index
 import { Route as TicketsIndexRouteImport } from './routes/tickets/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
 import { Route as TrackTicketIdRouteImport } from './routes/track/$ticketId'
+import { Route as ApiV1BootstrapRouteImport } from './routes/api/v1/bootstrap'
 import { Route as ApiV1DashboardMetricsRouteImport } from './routes/api/v1/dashboard/metrics'
 import { Route as ApiV1TicketsIndexRouteImport } from './routes/api/v1/tickets/index'
 import { Route as ApiV1CustomersIdTicketsRouteImport } from './routes/api/v1/customers/$id/tickets'
@@ -78,6 +79,11 @@ const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
 const TrackTicketIdRoute = TrackTicketIdRouteImport.update({
   id: '/track/$ticketId',
   path: '/track/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BootstrapRoute = ApiV1BootstrapRouteImport.update({
+  id: '/api/v1/bootstrap',
+  path: '/api/v1/bootstrap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1DashboardMetricsRoute = ApiV1DashboardMetricsRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/tech/': typeof TechIndexRoute
   '/technicians/': typeof TechniciansIndexRoute
   '/tickets/': typeof TicketsIndexRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
   '/api/v1/tickets/': typeof ApiV1TicketsIndexRoute
   '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/tech': typeof TechIndexRoute
   '/technicians': typeof TechniciansIndexRoute
   '/tickets': typeof TicketsIndexRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
   '/api/v1/tickets': typeof ApiV1TicketsIndexRoute
   '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/tech/': typeof TechIndexRoute
   '/technicians/': typeof TechniciansIndexRoute
   '/tickets/': typeof TicketsIndexRoute
+  '/api/v1/bootstrap': typeof ApiV1BootstrapRoute
   '/api/v1/dashboard/metrics': typeof ApiV1DashboardMetricsRoute
   '/api/v1/tickets/': typeof ApiV1TicketsIndexRoute
   '/api/v1/customers/$id/tickets': typeof ApiV1CustomersIdTicketsRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/tech/'
     | '/technicians/'
     | '/tickets/'
+    | '/api/v1/bootstrap'
     | '/api/v1/dashboard/metrics'
     | '/api/v1/tickets/'
     | '/api/v1/customers/$id/tickets'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/tech'
     | '/technicians'
     | '/tickets'
+    | '/api/v1/bootstrap'
     | '/api/v1/dashboard/metrics'
     | '/api/v1/tickets'
     | '/api/v1/customers/$id/tickets'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/tech/'
     | '/technicians/'
     | '/tickets/'
+    | '/api/v1/bootstrap'
     | '/api/v1/dashboard/metrics'
     | '/api/v1/tickets/'
     | '/api/v1/customers/$id/tickets'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   TechIndexRoute: typeof TechIndexRoute
   TechniciansIndexRoute: typeof TechniciansIndexRoute
   TicketsIndexRoute: typeof TicketsIndexRoute
+  ApiV1BootstrapRoute: typeof ApiV1BootstrapRoute
   ApiV1DashboardMetricsRoute: typeof ApiV1DashboardMetricsRoute
   ApiV1TicketsIndexRoute: typeof ApiV1TicketsIndexRoute
   ApiV1CustomersIdTicketsRoute: typeof ApiV1CustomersIdTicketsRoute
@@ -361,6 +374,13 @@ declare module '@tanstack/react-router' {
       path: '/track/$ticketId'
       fullPath: '/track/$ticketId'
       preLoaderRoute: typeof TrackTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/bootstrap': {
+      id: '/api/v1/bootstrap'
+      path: '/api/v1/bootstrap'
+      fullPath: '/api/v1/bootstrap'
+      preLoaderRoute: typeof ApiV1BootstrapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/v1/dashboard/metrics': {
@@ -447,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   TechIndexRoute: TechIndexRoute,
   TechniciansIndexRoute: TechniciansIndexRoute,
   TicketsIndexRoute: TicketsIndexRoute,
+  ApiV1BootstrapRoute: ApiV1BootstrapRoute,
   ApiV1DashboardMetricsRoute: ApiV1DashboardMetricsRoute,
   ApiV1TicketsIndexRoute: ApiV1TicketsIndexRoute,
   ApiV1CustomersIdTicketsRoute: ApiV1CustomersIdTicketsRoute,

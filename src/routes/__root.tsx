@@ -120,7 +120,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.classList.toggle("dark",localStorage.getItem("fieldflow_theme")==="dark")}catch(e){}`,
+            __html: `try{document.documentElement.classList.toggle("dark",/(?:^|; )fieldflow_theme=dark(?:;|$)/.test(document.cookie))}catch(e){}`,
           }}
         />
         <HeadContent />

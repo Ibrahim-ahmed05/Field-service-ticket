@@ -80,10 +80,10 @@ function TechnicianJobDetailPage() {
     setCompletedInstructions((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const handlePostNote = (e: React.FormEvent) => {
+  const handlePostNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteText.trim()) return;
-    addNote(ticket.id, noteText.trim(), isInternal);
+    await addNote(ticket.id, noteText.trim(), isInternal);
     setNoteText("");
   };
 
@@ -92,7 +92,7 @@ function TechnicianJobDetailPage() {
       setTargetStatus(status);
       setModalOpen(true);
     } else {
-      updateTicketStatus(ticket.id, status, "Technician updated status from mobile app.");
+      void updateTicketStatus(ticket.id, status, "Technician updated status from mobile app.");
     }
   };
 

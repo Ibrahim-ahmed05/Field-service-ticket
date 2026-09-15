@@ -19,7 +19,7 @@ export async function connectDB(): Promise<typeof mongoose | null> {
 
   const uri = process.env["MONGODB_URI"];
   if (!uri || !uri.trim()) {
-    console.warn("[db] MONGODB_URI is not set. Falling back to persistent in-memory data store.");
+    console.warn("[db] MONGODB_URI is not set.");
     return null;
   }
 

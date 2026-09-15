@@ -32,7 +32,7 @@ export function TransitionModal({
 
   if (!targetStatus) return null;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     let finalNote = note.trim();
     let evidencePayload = undefined;
 
@@ -53,7 +53,7 @@ export function TransitionModal({
       };
     }
 
-    const ok = updateTicketStatus(ticket.id, targetStatus, finalNote || undefined, evidencePayload);
+    const ok = await updateTicketStatus(ticket.id, targetStatus, finalNote || undefined, evidencePayload);
     if (ok) {
       onOpenChange(false);
       setNote("");

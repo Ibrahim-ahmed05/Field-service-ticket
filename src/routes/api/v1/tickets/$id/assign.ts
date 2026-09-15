@@ -11,12 +11,12 @@ export const Route = createFileRoute("/api/v1/tickets/$id/assign")({
           const ticketId = params["id"];
           const body = await request.json();
 
-          if (!body.technicianId) {
+          if (body.technicianId === undefined) {
             return jsonResponse(
               {
                 status: 400,
                 code: "MISSING_TECHNICIAN_ID",
-                message: "technicianId is required.",
+                message: "technicianId is required and may be null to unassign.",
               },
               400,
             );

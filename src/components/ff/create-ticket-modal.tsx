@@ -76,13 +76,13 @@ export function CreateTicketModal({
     setWorkInstructions(workInstructions.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerId || !siteId || !title.trim() || !description.trim()) {
       return;
     }
 
-    const newTicket = createTicket({
+    const newTicket = await createTicket({
       customerId,
       siteId,
       equipmentId: equipmentId !== "none" ? equipmentId : undefined,

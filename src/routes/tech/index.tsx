@@ -71,7 +71,7 @@ function TechnicianMyJobsPage() {
       setTransitionTarget(nextStatus);
       setModalOpen(true);
     } else {
-      updateTicketStatus(ticket.id, nextStatus, "Technician updated status from mobile app.");
+      void updateTicketStatus(ticket.id, nextStatus, "Technician updated status from mobile app.");
     }
   };
 

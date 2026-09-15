@@ -52,11 +52,11 @@ export function EditTicketModal({
     setWorkInstructions(workInstructions.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
 
-    editTicket(ticket.id, {
+    const saved = await editTicket(ticket.id, {
       title: title.trim(),
       description: description.trim(),
       category,
@@ -65,7 +65,7 @@ export function EditTicketModal({
       workInstructions,
     });
 
-    onOpenChange(false);
+    if (saved) onOpenChange(false);
   };
 
   const slaDuration = SLA_HOURS[priority];

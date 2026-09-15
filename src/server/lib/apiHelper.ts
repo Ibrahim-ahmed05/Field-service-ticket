@@ -11,7 +11,7 @@ import { AuthUser, UserRole } from "../types/field-service";
  * - x-technician-id
  * - x-customer-id
  *
- * Defaults to Manager role on comp-apex-01 if unspecified.
+ * Defaults to the seeded demo manager on comp-1 if unspecified.
  */
 export function extractAuthUser(request: Request): AuthUser {
   const headers = request.headers;
@@ -20,7 +20,7 @@ export function extractAuthUser(request: Request): AuthUser {
   const id = headers.get("x-user-id") || "user-manager-1";
   const name = headers.get("x-user-name") || "Operations Manager";
   const email = headers.get("x-user-email") || "manager@apex-facilities.com";
-  const companyId = headers.get("x-company-id") || "comp-apex-01";
+  const companyId = headers.get("x-company-id") || "comp-1";
   const technicianId = headers.get("x-technician-id") || (role === "TECHNICIAN" ? id : undefined);
   const customerId = headers.get("x-customer-id") || (role === "CUSTOMER" ? id : undefined);
 

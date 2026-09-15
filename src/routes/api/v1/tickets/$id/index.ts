@@ -16,6 +16,15 @@ export const Route = createFileRoute("/api/v1/tickets/$id/")({
           return errorResponse(err);
         }
       },
+      PATCH: async ({ request, params }) => {
+        try {
+          const user = extractAuthUser(request);
+          const ticket = await globalTicketService.updateTicket(params["id"], await request.json(), user);
+          return jsonResponse({ success: true, ticket });
+        } catch (err) {
+          return errorResponse(err);
+        }
+      },
     },
   },
 });

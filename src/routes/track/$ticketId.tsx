@@ -100,15 +100,14 @@ function CustomerTicketTrackingPage() {
   const publicAttachments = attachments.filter((a) => a.ticketId === ticket.id && a.customerVisible);
   const ticketHistory = history.filter((h) => h.ticketId === ticket.id);
 
-  const handleConfirmResolution = () => {
-    confirmResolution(ticket.id, feedbackText.trim() || undefined);
-    setConfirmModalOpen(false);
+  const handleConfirmResolution = async () => {
+    if (await confirmResolution(ticket.id, feedbackText.trim() || undefined)) setConfirmModalOpen(false);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerMessage.trim()) return;
-    addNote(ticket.id, customerMessage.trim(), false); // Always public from customer
+    await addNote(ticket.id, customerMessage.trim(), false); // Always public from customer
     setCustomerMessage("");
   };
 

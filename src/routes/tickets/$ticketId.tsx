@@ -150,17 +150,17 @@ function TicketDetailPage() {
     setTransitionModalOpen(true);
   };
 
-  const handlePostNote = (e: React.FormEvent) => {
+  const handlePostNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNoteBody.trim()) return;
-    addNote(ticket.id, newNoteBody.trim(), isInternalNote);
+    await addNote(ticket.id, newNoteBody.trim(), isInternalNote);
     setNewNoteBody("");
   };
 
-  const handleUploadAttachment = (e: React.FormEvent) => {
+  const handleUploadAttachment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!attachName.trim() || !attachUrl.trim()) return;
-    uploadAttachment(ticket.id, {
+    await uploadAttachment(ticket.id, {
       name: attachName.trim(),
       fileUrl: attachUrl.trim(),
       fileType: "image/png",
@@ -231,7 +231,7 @@ function TicketDetailPage() {
           {role === "customer" && ticket.status === "Resolved" && (
             <Button
               size="sm"
-              onClick={() => confirmResolution(ticket.id)}
+              onClick={() => void confirmResolution(ticket.id)}
               className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
             >
               <ShieldCheck className="size-3.5" />
@@ -701,9 +701,8 @@ function TicketDetailPage() {
             {technicians.map((t) => (
               <div
                 key={t.id}
-                onClick={() => {
-                  assignTechnician(ticket.id, t.id);
-                  setAssignModalOpen(false);
+                onClick={async () => {
+                  if (await assignTechnician(ticket.id, t.id)) setAssignModalOpen(false);
                 }}
                 className="flex items-center justify-between p-3 rounded-xl border border-hairline hover:border-primary hover:bg-muted/50 cursor-pointer transition-all"
               >
